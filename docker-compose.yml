@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sisdmk2-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DATABASE:-si_data}
+      POSTGRES_USER: ${POSTGRES_USER:-sisdmk2_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command:
+      - "postgres"
+      - "-c"
+      - "password_encryption=scram-sha-256"
+      - "-c"
+      - "log_connections=on"
+      - "-c"
+      - "log_disconnections=on"
+      - "-c"
+      - "log_statement=ddl"
+    ports:
+      - "127.0.0.1:${POSTGRES_PUBLIC_PORT:-5432}:5432"
+    volumes:
+      - sisdmk2_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: sisdmk2-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - sisdmk2_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  app-nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sisdmk2-app-nextjs
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sisdmk2_user}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DATABASE:-si_data}?schema=public
+      POSTGRES_HOST: postgres
+      POSTGRES_HOSTS: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-sisdmk2_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE:-si_data}
+      POSTGRES_DATABASES: ${POSTGRES_DATABASES:-si_data}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN in .env, for example https://sisdmk.example.go.id}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      STORAGE_LOCAL_PATH: ${STORAGE_LOCAL_PATH:-/app/storage}
+      AI_ENABLE_N8N: ${AI_ENABLE_N8N:-true}
+      AI_MAX_QUERY_ROWS: ${AI_MAX_QUERY_ROWS:-50}
+      AI_QUERY_TIMEOUT: ${AI_QUERY_TIMEOUT:-10000}
+      AI_ALLOWED_TABLES: ${AI_ALLOWED_TABLES:-pegawai}
+      AI_POSTGRES_USER: ${AI_POSTGRES_USER:-ai_readonly}
+      AI_POSTGRES_PASSWORD: ${AI_POSTGRES_PASSWORD:-}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      N8N_PUBLIC_WEBHOOK_URL: ${N8N_PUBLIC_WEBHOOK_URL:-}
+      N8N_API_SECRET: ${N8N_API_SECRET:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+    ports:
+      - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-8080}:3000"
+    volumes:
+      - sisdmk2_uploads:/app/storage
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    init: true
+    pids_limit: 256
+
+volumes:
+  sisdmk2_postgres_data:
+  sisdmk2_redis_data:
+  sisdmk2_uploads:

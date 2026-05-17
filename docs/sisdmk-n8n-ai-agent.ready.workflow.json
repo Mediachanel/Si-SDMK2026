@@ -1,0 +1,499 @@
+{
+  "name": "SI-SDMK - AI Agent Internal + Public READY",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sisdmk-ai",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1100,
+        -220
+      ],
+      "id": "6c25d574-0700-4b6e-90d3-ff050e20e854",
+      "name": "Webhook - Internal AI",
+      "webhookId": "sisdmk-ai"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sisdmk-ai-pegawai-search",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1100,
+        -460
+      ],
+      "id": "f59f00a3-6fd6-4f0c-a07f-7f61f76f5ec6",
+      "name": "Webhook - Legacy AI Pegawai Search",
+      "webhookId": "sisdmk-ai-pegawai-search"
+    },
+    {
+      "parameters": {
+        "jsCode": "const headers = $json.headers || {};\nconst body = $json.body || {};\nconst message = String(body.message || body.question || body.prompt || '').trim();\nconst requestId = String(body.request_id || headers['x-request-id'] || Date.now());\nconst aiSecret = String(headers['x-ai-secret'] || headers['X-AI-Secret'] || headers['X-AI-SECRET'] || headers['x-api-key'] || headers['X-API-Key'] || body.api_key || '').trim();\nconst appBaseUrl = String(body.app_base_url || body.sisdmk_app_base_url || 'http://sisdmk2-app:3000').replace(/\\/$/, '');\nconst user = body.user || body.role_scope || {};\nconst role = String(user.role || '').toUpperCase();\nconst lower = message.toLowerCase();\nconst allowedRoles = ['SUPER_ADMIN', 'ADMIN_WILAYAH', 'ADMIN_UKPD', 'USER'];\nconst authorized = Boolean(aiSecret) && Boolean(message) && allowedRoles.includes(role);\nfunction entity(pattern) { const m = message.match(pattern); return m && m[1] ? String(m[1]).trim() : ''; }\nconst namaEntity = entity(/\\b(?:nama|bernama)\\s+([^,.?]+)/i) || entity(/\\bpegawai\\s+(?:bernama\\s+)?([^,.?]+)/i);\nconst entities = {\n  status_pegawai: entity(/\\b(?:status|jenis pegawai)\\s+([^,.?]+)/i),\n  wilayah: entity(/\\b(?:wilayah|di)\\s+(jakarta\\s+(?:timur|barat|utara|selatan|pusat)|kepulauan\\s+seribu)/i),\n  ukpd: entity(/\\b(?:ukpd|unit kerja)\\s+([^,.?]+)/i),\n  jabatan: entity(/\\b(?:jabatan|sebagai)\\s+([^,.?]+)/i),\n  nama: namaEntity,\n  id_pegawai: body.id_pegawai || body.id || null\n};\nlet intent = 'employee_search';\nlet toolPath = '/api/internal-ai/tools/search-employee';\nlet toolName = 'search-employee';\nlet action = null;\nif (/\\b(dashboard|ringkasan|summary|grafik|analitik)\\b/i.test(lower)) { intent = 'dashboard_summary'; toolPath = '/api/internal-ai/tools/dashboard-summary'; toolName = 'dashboard-summary'; }\nelse if (/\\b(berapa|jumlah|total|hitung|rekap)\\b/i.test(lower)) { intent = 'employee_count'; toolPath = '/api/internal-ai/tools/employee-count'; toolName = 'employee-count'; }\nelse if (/\\b(profil|detail|data dasar|biodata)\\b/i.test(lower)) { intent = 'employee_profile'; toolPath = '/api/internal-ai/tools/employee-profile'; toolName = 'employee-profile'; }\nelse if (/\\b(tambah|buat)\\b.*\\b(draft|pegawai)\\b/i.test(lower)) { intent = 'pegawai_change_create'; toolPath = '/api/internal-ai/tools/pegawai-change-draft'; toolName = 'pegawai-change-draft'; action = 'create'; }\nelse if (/\\b(ubah|update|koreksi|perbaiki)\\b/i.test(lower)) { intent = 'pegawai_change_update'; toolPath = '/api/internal-ai/tools/pegawai-change-draft'; toolName = 'pegawai-change-draft'; action = 'update'; }\nelse if (/\\b(hapus|delete|arsip|nonaktifkan)\\b/i.test(lower)) { intent = 'pegawai_change_delete'; toolPath = '/api/internal-ai/tools/pegawai-change-draft'; toolName = 'pegawai-change-draft'; action = 'delete'; }\nconst groupBy = /\\b(per|berdasarkan)\\s+(status|jenis pegawai|kategori)\\b/i.test(lower) ? 'status_pegawai' : /\\b(per|berdasarkan)\\s+ukpd\\b/i.test(lower) ? 'ukpd' : /\\b(per|berdasarkan)\\s+wilayah\\b/i.test(lower) ? 'wilayah' : /\\b(per|berdasarkan)\\s+jabatan\\b/i.test(lower) ? 'nama_jabatan' : /\\b(per|berdasarkan)\\s+(pendidikan|jenjang pendidikan)\\b/i.test(lower) ? 'pendidikan' : /\\b(per|berdasarkan)\\s+rumpun\\b/i.test(lower) ? 'rumpun' : '';\nconst toolBody = {\n  request_id: requestId,\n  conversation_id: body.conversation_id || body.session_id || null,\n  message,\n  question: message,\n  user,\n  role_scope: body.role_scope || null,\n  source: body.source || 'internal_chat',\n  status_pegawai: body.status_pegawai || entities.status_pegawai || '',\n  wilayah: body.wilayah || entities.wilayah || '',\n  ukpd: body.ukpd || body.nama_ukpd || entities.ukpd || '',\n  jabatan: body.jabatan || body.nama_jabatan || entities.jabatan || '',\n  nama: body.nama || entities.nama || '',\n  id_pegawai: body.id_pegawai || entities.id_pegawai || undefined,\n  group_by: body.group_by || groupBy || undefined,\n  limit: body.limit || 50\n};\nif (action) {\n  toolBody.action = action;\n  toolBody.reason = body.reason || message.slice(0, 1000);\n  toolBody.payload = body.payload || {};\n}\nreturn [{ json: { authorized, denied_reason: authorized ? '' : 'Unauthorized: x-ai-secret/x-api-key, message, atau role tidak valid.', request_id: requestId, conversation_id: body.conversation_id || body.session_id || null, ai_secret: aiSecret, app_base_url: appBaseUrl, tool_url: appBaseUrl + toolPath, tool_body: toolBody, intent, entities, tool: toolName, original_message: message, user, received_at: new Date().toISOString() } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -860,
+        -220
+      ],
+      "id": "c518d6aa-463c-4616-8cd9-a80a7e2bb371",
+      "name": "Normalize Internal Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "internal-authorized",
+              "leftValue": "={{ $json.authorized }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -620,
+        -220
+      ],
+      "id": "1627ae82-e40b-4bc3-9760-76154a996fdc",
+      "name": "IF Internal Authorized"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.tool_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-ai-secret",
+              "value": "={{ $json.ai_secret }}"
+            },
+            {
+              "name": "x-request-id",
+              "value": "={{ $json.request_id }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.tool_body) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -360,
+        -320
+      ],
+      "id": "6782bb66-e98e-41ea-a54e-dc1ce6a8fc8d",
+      "name": "Call Internal SI-SDMK Tool",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $items('Normalize Internal Request')[0].json;\nconst tool = $json || {};\nconst errorMessage = tool.error?.message || tool.error || tool.message || tool.description || '';\nconst hasError = Boolean(tool.error) || Boolean(tool.code) || /error|failed|refused|timeout|not found/i.test(String(errorMessage));\nfunction listRows(rows) {\n  return rows.slice(0, 5).map((r, i) => `${i + 1}. ${r.nama || r.nama_pegawai || '-'} | ${r.nama_jabatan || r.jabatan || '-'} | ${r.ukpd || r.nama_ukpd || '-'} | ${r.wilayah || '-'}`).join('\\n');\n}\nfunction answerFromTool() {\n  if (hasError) return `Tool internal SI-SDMK gagal dipanggil: ${errorMessage || 'tidak ada detail error'}. URL: ${ctx.tool_url}`;\n  if (ctx.intent === 'employee_count') {\n    if (tool.group_by && Array.isArray(tool.data)) {\n      const rows = tool.data.slice(0, 10).map((r) => `${r.kategori || 'Tidak tercatat'}: ${Number(r.total || 0)}`).join('\\n');\n      return rows ? `Berikut ringkasan jumlah pegawai berdasarkan ${tool.group_by}:\\n${rows}` : 'Tidak ada data pegawai yang sesuai dalam scope akses Anda.';\n    }\n    return `Jumlah pegawai sesuai kriteria dan scope akses: ${Number(tool.total || 0)}.`;\n  }\n  if (ctx.intent === 'dashboard_summary') {\n    const status = Array.isArray(tool.by_status) ? tool.by_status.slice(0, 6).map((r) => `${r.status_pegawai || 'Tidak tercatat'}: ${r.total}`).join(', ') : '';\n    return `Ringkasan dashboard sesuai scope akses: total ${Number(tool.total || 0)} pegawai${status ? `. Status: ${status}.` : '.'}`;\n  }\n  if (ctx.intent === 'employee_profile') {\n    const p = tool.employee || tool.data?.pegawai;\n    if (!p) return tool.message || 'Pegawai tidak ditemukan atau berada di luar kewenangan akses Anda.';\n    return `Data dasar pegawai: ${p.nama || '-'}, jabatan ${p.nama_jabatan || p.jabatan || '-'}, UKPD ${p.ukpd || p.nama_ukpd || '-'}, wilayah ${p.wilayah || '-'}, status ${p.status_pegawai || p.jenis_pegawai || '-'}.`;\n  }\n  if (ctx.tool === 'pegawai-change-draft') return tool.message || 'Draft perubahan pegawai dibuat dan menunggu approval manusia.';\n  const rows = Array.isArray(tool.data) ? tool.data : Array.isArray(tool.candidates) ? tool.candidates : [];\n  if (!rows.length) return 'Data pegawai tidak ditemukan dalam scope akses Anda.';\n  return `Ditemukan ${rows.length} pegawai:\\n${listRows(rows)}${rows.length > 5 ? `\\nDan ${rows.length - 5} data lain dalam hasil terbatas.` : ''}`;\n}\nconst answer = answerFromTool();\nconst verification = hasError ? 'tool_error' : tool.verification || (tool.not_found ? 'empty_verified' : 'verified');\nreturn [{ json: { answer, source: 'n8n', intent: ctx.intent, entities: ctx.entities, tool: ctx.tool, verification, confidence: tool.confidence_score ?? (hasError ? 0 : 1), candidates: tool.candidates || tool.data || [], selected_candidate: tool.selected_candidate || tool.employee || null, tool_result: tool, suggestions: hasError ? ['Pastikan Next.js listen di host/port yang bisa diakses container n8n', 'Set app_base_url ke alamat app dari dalam Docker'] : (ctx.intent === 'employee_count' ? ['Tampilkan per UKPD', 'Tampilkan per status pegawai', 'Tampilkan per wilayah'] : ['Hitung jumlah pegawai dari hasil ini', 'Tampilkan ringkasan dashboard']), request_id: ctx.request_id, conversation_id: ctx.conversation_id, sourceTools: [ctx.tool], retrievalStatus: hasError ? 'failed' : tool.not_found ? 'empty' : 'retrieved', meta: { approvalRequired: Boolean(tool.approval_required), workflow: 'sisdmk-ai', toolUrl: ctx.tool_url }, debug: { original_message: ctx.original_message, parsed_intent: ctx.intent, extracted_entities: ctx.entities, final_answer: answer } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        -320
+      ],
+      "id": "07fae33b-806f-4ec4-98e1-1db6ad09e62f",
+      "name": "Prepare Internal Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        160,
+        -320
+      ],
+      "id": "d96f0d98-7dc4-47a4-9069-ed4f6cb1c50c",
+      "name": "Respond Internal Success"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { answer: $json.denied_reason || 'Unauthorized.', source: 'n8n', intent: 'unauthorized', entities: {}, tool: '-', verification: 'denied', confidence: 0, candidates: [], selected_candidate: null, tool_result: null, suggestions: [], request_id: $json.request_id || null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        -100
+      ],
+      "id": "35d71c74-b806-49fe-b65d-b0cd9f3751b7",
+      "name": "Prepare Internal Unauthorized"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -100,
+        -100
+      ],
+      "id": "3a3dcc4c-6d51-4112-8767-8d9b1e037535",
+      "name": "Respond Internal Unauthorized"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sisdmk-public-chat",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1100,
+        260
+      ],
+      "id": "ba6c58e9-1e33-4df2-bcb8-87d5bf93652e",
+      "name": "Webhook - Public Chat",
+      "webhookId": "sisdmk-public-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "const headers = $json.headers || {};\nconst body = $json.body || {};\nconst message = String(body.message || body.question || '').trim();\nconst requestId = String(body.request_id || headers['x-request-id'] || Date.now());\nconst aiSecret = String(headers['x-ai-secret'] || headers['X-AI-Secret'] || headers['X-AI-SECRET'] || '').trim();\nconst appBaseUrl = String(body.app_base_url || 'http://sisdmk2-app:3000').replace(/\\/$/, '');\nconst privatePattern = /\\b(nik|nip|nrk|alamat|nomor hp|no hp|keluarga|gaji|password|token|pegawai\\s+bernama|data pegawai|profil pegawai|dashboard|mutasi|dokumen pegawai)\\b/i;\nconst authorized = Boolean(aiSecret) && Boolean(message);\nconst should_call_tool = authorized && !privatePattern.test(message);\nconst refusal = privatePattern.test(message) ? 'Maaf, informasi tersebut bersifat internal. Silakan login ke SI-SDMK atau hubungi admin sesuai kewenangan.' : '';\nreturn [{ json: { authorized, should_call_tool, refusal, denied_reason: authorized ? '' : 'Unauthorized: x-ai-secret atau message tidak valid.', request_id: requestId, conversation_id: body.conversation_id || body.session_id || null, ai_secret: aiSecret, tool_url: appBaseUrl + '/api/internal-ai/tools/public-qna', tool_body: { request_id: requestId, conversation_id: body.conversation_id || body.session_id || null, message, query: message, source: 'public_chat' }, intent: privatePattern.test(message) ? 'private_or_internal_request' : 'public_qna', entities: {}, tool: 'public-qna', original_message: message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -860,
+        260
+      ],
+      "id": "06a29336-b5a0-4334-a0a0-b5020f948857",
+      "name": "Normalize Public Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "public-call-tool",
+              "leftValue": "={{ $json.should_call_tool }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -620,
+        260
+      ],
+      "id": "b5efe524-60ff-4f78-b79e-a94d99439378",
+      "name": "IF Public Tool Allowed"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.tool_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-ai-secret",
+              "value": "={{ $json.ai_secret }}"
+            },
+            {
+              "name": "x-request-id",
+              "value": "={{ $json.request_id }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.tool_body) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -360,
+        160
+      ],
+      "id": "c29b6e1b-5248-4ad0-a027-823687eaa02e",
+      "name": "Call Public QnA Tool",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $items('Normalize Public Request')[0].json;\nconst tool = $json || {};\nconst qna = Array.isArray(tool.qna) ? tool.qna : [];\nconst first = qna[0] || null;\nconst answer = tool.error ? tool.error : first ? first.answer : 'Maaf, informasi tersebut belum tersedia pada QnA publik SI-SDMK. Silakan login atau hubungi admin.';\nreturn [{ json: { answer, source: 'n8n', intent: 'public_qna', entities: {}, tool: 'public-qna', verification: first ? 'verified_public_qna' : 'empty_verified', confidence: tool.confidence_score ?? (first ? 1 : 0), candidates: tool.candidates || qna, selected_candidate: first, tool_result: tool, suggestions: first ? ['Tampilkan topik layanan lain', 'Bagaimana cara menghubungi admin?'] : ['Silakan login untuk pertanyaan internal', 'Hubungi admin SI-SDMK'], request_id: ctx.request_id, conversation_id: ctx.conversation_id, sourceTools: ['public-qna'], retrievalStatus: first ? 'retrieved' : 'empty', meta: { approvalRequired: false, workflow: 'sisdmk-public-chat' }, debug: { original_message: ctx.original_message, parsed_intent: 'public_qna', final_answer: answer } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        160
+      ],
+      "id": "716a59a3-9f06-4611-989a-cf52ddb28a24",
+      "name": "Prepare Public Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        160,
+        160
+      ],
+      "id": "6cfcb85b-7d8e-42ac-803b-2f221e8f6bf8",
+      "name": "Respond Public Success"
+    },
+    {
+      "parameters": {
+        "jsCode": "const answer = $json.denied_reason || $json.refusal || 'Maaf, informasi tersebut belum tersedia pada QnA publik SI-SDMK. Silakan login atau hubungi admin.';\nreturn [{ json: { answer, source: 'n8n', intent: $json.intent || 'public_qna', entities: {}, tool: '-', verification: $json.authorized ? 'denied_private_request' : 'denied', confidence: 0, candidates: [], selected_candidate: null, tool_result: null, suggestions: $json.authorized ? ['Silakan login untuk pertanyaan internal', 'Hubungi admin SI-SDMK'] : [], request_id: $json.request_id || null, conversation_id: $json.conversation_id || null, sourceTools: [], retrievalStatus: 'denied', meta: { approvalRequired: false, workflow: 'sisdmk-public-chat' } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        380
+      ],
+      "id": "488d93f7-e31d-45dc-bad4-c1220a151f8e",
+      "name": "Prepare Public Refusal"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -100,
+        380
+      ],
+      "id": "0056bff4-52d9-4492-b7d3-4e768c8745a8",
+      "name": "Respond Public Refusal"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Internal AI": {
+      "main": [
+        [
+          {
+            "node": "Normalize Internal Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Legacy AI Pegawai Search": {
+      "main": [
+        [
+          {
+            "node": "Normalize Internal Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Internal Request": {
+      "main": [
+        [
+          {
+            "node": "IF Internal Authorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Internal Authorized": {
+      "main": [
+        [
+          {
+            "node": "Call Internal SI-SDMK Tool",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Internal Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Internal SI-SDMK Tool": {
+      "main": [
+        [
+          {
+            "node": "Prepare Internal Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Internal Response": {
+      "main": [
+        []
+      ]
+    },
+    "Prepare Internal Unauthorized": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook - Public Chat": {
+      "main": [
+        [
+          {
+            "node": "Normalize Public Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Public Request": {
+      "main": [
+        [
+          {
+            "node": "IF Public Tool Allowed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Public Tool Allowed": {
+      "main": [
+        [
+          {
+            "node": "Call Public QnA Tool",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Public Refusal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Public QnA Tool": {
+      "main": [
+        [
+          {
+            "node": "Prepare Public Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Public Response": {
+      "main": [
+        []
+      ]
+    },
+    "Prepare Public Refusal": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "83f961ac-ed26-4593-a282-263d78cc8588",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "description": "Import-ready SI-SDMK n8n workflow. Uses Webhook lastNode responses, supports /sisdmk-ai, /sisdmk-ai-pegawai-search, and /sisdmk-public-chat. Uses incoming x-ai-secret/x-api-key and approved Next.js internal tools only; no raw SQL and no env access in Code nodes."
+  },
+  "tags": [
+    {
+      "name": "SI-SDMK"
+    },
+    {
+      "name": "AI Agent"
+    },
+    {
+      "name": "Production"
+    }
+  ]
+}
