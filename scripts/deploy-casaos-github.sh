@@ -428,18 +428,9 @@ sync_source() {
     git remote set-url origin "$REPO_URL"
     git fetch --prune origin
 
-    if git show-ref --verify --quiet "refs/heads/$BRANCH"; then
-      git checkout "$BRANCH"
-    else
-      git checkout -b "$BRANCH" "origin/$BRANCH"
-    fi
-
-    if git merge-base --is-ancestor HEAD "origin/$BRANCH"; then
-      git pull --ff-only origin "$BRANCH"
-    else
-      log "Riwayat source lokal berbeda dari GitHub. Reset source ke origin/$BRANCH..."
-      git reset --hard "origin/$BRANCH"
-    fi
+    log "Reset source lokal ke origin/$BRANCH..."
+    git checkout -B "$BRANCH" "origin/$BRANCH"
+    git reset --hard "origin/$BRANCH"
   else
     if [ -e "$SOURCE_DIR" ]; then
       die "$SOURCE_DIR sudah ada tapi bukan repo git."
