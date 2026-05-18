@@ -2,12 +2,22 @@
 
 Dokumen ini melengkapi README untuk hardening deploy Docker/CasaOS.
 
+Workspace production:
+
+```text
+/media/devmon/Local Disk/projects
+```
+
 ## Env Production Minimum
 
 Jangan gunakan secret contoh untuk production.
 
 ```env
 DATABASE_URL=postgresql://sisdmk2_user:CHANGE_ME@db:5432/si_data?schema=public
+PROJECTS_ROOT="/media/devmon/Local Disk/projects"
+BACKUP_DIR="/media/devmon/Local Disk/projects/backup"
+UPLOADS_DIR="/media/devmon/Local Disk/projects/uploads/si-kepegawaian"
+POSTGRES_DATA_DIR="/media/devmon/Local Disk/projects/postgres/data"
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
 POSTGRES_USER=sisdmk2_user
@@ -38,6 +48,9 @@ CHATBOT_AUTO_REPLY=false
 4. Jalankan migration bertahap:
 
 ```bash
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian/source"
 docker compose exec app npm run migrate:phase1
 docker compose exec app npm run migrate:phase2
 docker compose exec app npm run migrate:phase3
@@ -47,6 +60,9 @@ docker compose exec app npm run migrate:phase4
 5. Build dan restart service:
 
 ```bash
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian/source"
 docker compose build app
 docker compose up -d
 docker compose logs -f app
@@ -61,14 +77,22 @@ Untuk CasaOS, pastikan volume berikut persisten:
 ## Backup Database
 
 ```bash
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian/source"
+mkdir -p "$PROJECTS_ROOT/backup"
 docker compose exec db pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DATABASE" -Fc -f /tmp/sisdmk.backup
-docker compose cp db:/tmp/sisdmk.backup ./backup/sisdmk-$(date +%F-%H%M).backup
+docker compose cp db:/tmp/sisdmk.backup "$PROJECTS_ROOT/backup/sisdmk-$(date +%F-%H%M).backup"
 ```
 
 Backup SQL plain jika perlu inspeksi manual:
 
 ```bash
-docker compose exec db pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DATABASE" > ./backup/sisdmk-$(date +%F-%H%M).sql
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian/source"
+mkdir -p "$PROJECTS_ROOT/backup"
+docker compose exec db pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DATABASE" > "$PROJECTS_ROOT/backup/sisdmk-$(date +%F-%H%M).sql"
 ```
 
 ## Restore Database
@@ -76,7 +100,10 @@ docker compose exec db pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DATABASE" > ./b
 Restore ke database baru atau maintenance window. Jangan restore ke production aktif tanpa validasi.
 
 ```bash
-docker compose cp ./backup/sisdmk.backup db:/tmp/sisdmk.backup
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian/source"
+docker compose cp "$PROJECTS_ROOT/backup/sisdmk.backup" db:/tmp/sisdmk.backup
 docker compose exec db pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DATABASE" --clean --if-exists /tmp/sisdmk.backup
 ```
 

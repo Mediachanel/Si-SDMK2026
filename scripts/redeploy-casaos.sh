@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-APP_DIR="${APP_DIR:-/DATA/AppData/si-kepegawaian}"
+PROJECTS_ROOT="${PROJECTS_ROOT:-/media/devmon/Local Disk/projects}"
+APP_DIR="${APP_DIR:-$PROJECTS_ROOT/si-kepegawaian}"
 SOURCE_DIR="${SOURCE_DIR:-$APP_DIR/source}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/.env}"
 BRANCH="${BRANCH:-main}"
+BACKUP_DIR="${BACKUP_DIR:-$PROJECTS_ROOT/backup}"
+UPLOADS_DIR="${UPLOADS_DIR:-$PROJECTS_ROOT/uploads/si-kepegawaian}"
 
 CONTAINER_NAME="${CONTAINER_NAME:-sisdmk2-app}"
 IMAGE_NAME="${IMAGE_NAME:-sisdmk2-app:latest}"
+BUILD_PULL="${BUILD_PULL:-0}"
 
 PUBLIC_HOST="${PUBLIC_HOST:-0.0.0.0}"
 PUBLIC_PORT="${PUBLIC_PORT:-8091}"
@@ -136,6 +140,7 @@ ensure_prerequisites() {
   need_cmd git
   need_cmd docker
   need_cmd curl
+  mkdir -p "$PROJECTS_ROOT" "$BACKUP_DIR" "$UPLOADS_DIR"
 
   [ -d "$SOURCE_DIR/.git" ] || {
     fail "Source dir bukan repository git: $SOURCE_DIR"
@@ -175,7 +180,11 @@ sync_source() {
 
 build_image() {
   cd "$SOURCE_DIR"
-  run_step docker build --pull -t "$IMAGE_NAME" .
+  if [ "$BUILD_PULL" = "1" ]; then
+    run_step docker build --pull -t "$IMAGE_NAME" .
+  else
+    run_step docker build -t "$IMAGE_NAME" .
+  fi
   ok "Image terbaru selesai dibuild: $IMAGE_NAME"
 }
 
@@ -210,6 +219,7 @@ run_new_container() {
     -e PORT="$INTERNAL_PORT" \
     -e HOSTNAME=0.0.0.0 \
     --add-host=host.docker.internal:host-gateway \
+    -v "$UPLOADS_DIR:/app/storage" \
     -p "$PUBLIC_HOST:$PUBLIC_PORT:$INTERNAL_PORT" \
     "$IMAGE_NAME" >/dev/null
 

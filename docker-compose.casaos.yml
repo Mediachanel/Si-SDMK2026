@@ -51,7 +51,7 @@ services:
     ports:
       - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-8080}:3000"
     volumes:
-      - ./storage:/app/storage
+      - "${UPLOADS_DIR:-/media/devmon/Local Disk/projects/uploads/si-kepegawaian}:/app/storage"
     tmpfs:
       - /tmp
       - /app/.next/cache:uid=1000,gid=1000,mode=1770

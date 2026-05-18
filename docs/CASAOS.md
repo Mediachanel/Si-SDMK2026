@@ -1,36 +1,58 @@
-# CasaOS Deployment
+# CasaOS STB Armbian Deployment
 
-Deploy dijalankan dari terminal CasaOS/DietPi, source ditarik dari GitHub, lalu container dibuild di server.
+Deployment SI Kepegawaian memakai standar disk `Local Disk`:
 
-Deployment ini hanya untuk SI Kepegawaian:
+```text
+/media/devmon/Local Disk/projects
+```
 
-- App container: `sisdmk2-app`
-- App folder: `/DATA/AppData/si-kepegawaian`
-- Database utama: `si_data`
-- PostgreSQL existing: `sisdmk-postgres`
-- PostgreSQL admin/user existing: `sisdmk_admin`
-- Docker network: `sisdmk2-network`
-- Domain produksi: `https://dinkes.kepegawaian.media`
-- Port host app: `8091`
+Semua source, env, upload, backup, PostgreSQL data, n8n data, AI agent, dan Docker bind mount wajib berada di bawah path tersebut.
 
-Aplikasi memakai PostgreSQL SI SDMK sendiri. Jangan memakai konfigurasi MariaDB/MySQL lama untuk app Next.js ini.
+## Layout
 
-## Deploy dari CasaOS via GitHub
+```text
+/media/devmon/Local Disk/projects/
+├── si-kepegawaian
+├── postgres
+├── n8n
+├── ai-agent
+├── backup
+├── uploads
+└── docker
+```
 
-Jalankan command ini langsung di terminal CasaOS/DietPi sebagai root. Pastikan perubahan terbaru sudah dipush ke GitHub branch `main`.
+Container utama:
+
+```text
+App        : sisdmk2-app
+PostgreSQL : sisdmk-postgres
+n8n        : sisdmk-n8n
+Network    : sisdmk2-network
+Port app   : 8091
+```
+
+## Deploy Dari GitHub
+
+Copy paste penuh di terminal CasaOS/STB:
 
 ```bash
-apt-get update
-apt-get install -y curl git ca-certificates
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
 
-mkdir -p /DATA/AppData/si-kepegawaian
-cd /DATA/AppData/si-kepegawaian
-curl -fsSL https://raw.githubusercontent.com/Mediachanel/SI_DATA_pgAdmin4/main/scripts/deploy-casaos-github.sh -o deploy-casaos-github.sh
+mkdir -p "$PROJECTS_ROOT/si-kepegawaian"
+mkdir -p "$PROJECTS_ROOT/postgres/data"
+mkdir -p "$PROJECTS_ROOT/n8n/data"
+mkdir -p "$PROJECTS_ROOT/ai-agent"
+mkdir -p "$PROJECTS_ROOT/backup"
+mkdir -p "$PROJECTS_ROOT/uploads/si-kepegawaian"
+mkdir -p "$PROJECTS_ROOT/docker"
+
+cd "$PROJECTS_ROOT/si-kepegawaian"
+curl -fsSL https://raw.githubusercontent.com/Mediachanel/Si-SDMK2026/main/scripts/deploy-casaos-github.sh -o deploy-casaos-github.sh
 chmod +x deploy-casaos-github.sh
+
 ./deploy-casaos-github.sh \
   --install-deps \
   --force-env \
-  --no-cache \
   --app-port 8091 \
   --app-origin https://dinkes.kepegawaian.media \
   --postgres-container sisdmk-postgres \
@@ -40,78 +62,35 @@ chmod +x deploy-casaos-github.sh
   --postgres-database si_data
 ```
 
-Jika `curl` belum ada:
+## Verifikasi
 
 ```bash
-apt-get update
-apt-get install -y curl
-```
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
 
-Script akan clone/pull repo ke `/DATA/AppData/si-kepegawaian/source`, membuat `.env.casaos`, membuat/cek database `si_data`, lalu menjalankan:
-
-```bash
-docker compose --env-file .env.casaos -f docker-compose.casaos.yml build --pull app
-docker compose --env-file .env.casaos -f docker-compose.casaos.yml up -d --force-recreate app
+cd "$PROJECTS_ROOT/si-kepegawaian/source"
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker logs --tail 80 sisdmk2-app
 docker exec sisdmk2-app npm run check:postgres
+docker exec -it sisdmk-postgres psql -U sisdmk_admin -d si_data -c "\dt"
 curl -fsS http://127.0.0.1:8091/api/health
 ```
 
-## Konfigurasi Server Saat Ini
+## Restore `si_data`
 
-Server CasaOS/DietPi yang dipakai saat ini memiliki container database:
-
-```text
-sisdmk-postgres
-```
-
-Env PostgreSQL container tersebut:
+Upload dump PostgreSQL ke:
 
 ```text
-POSTGRES_DB=si_data
-POSTGRES_USER=sisdmk_admin
-POSTGRES_PASSWORD=lihat nilai POSTGRES_PASSWORD di env server
+/media/devmon/Local Disk/projects/backup
 ```
 
-Aplikasi SI Kepegawaian memakai database PostgreSQL bernama `si_data` dengan user `sisdmk_admin`.
-
-Isian Adminer yang benar:
-
-```text
-Sistem     : PostgreSQL
-Server     : sisdmk-postgres
-Pengguna   : sisdmk_admin
-Sandi      : nilai POSTGRES_PASSWORD dari env server
-Basis data : si_data
-```
-
-Untuk melihat env PostgreSQL di server:
+Restore:
 
 ```bash
-docker inspect sisdmk-postgres --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E 'POSTGRES|PG'
-```
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
 
-Catatan penting: container lama `sikepeg-api` memakai MariaDB/MySQL, bukan PostgreSQL:
-
-```text
-DB_HOST=host.docker.internal
-DB_NAME=sisdmk2
-DB_PORT=3306
-DB_USER=root
-```
-
-Jangan memakai env `DB_*` untuk app baru ini. App Next.js baru membaca env `POSTGRES_*`.
-
-## Restore Data `si_data`
-
-Karena data pegawai tidak berasal dari seed dummy di repo, upload dump lokal `si_data.pg16.sql.tgz` lewat File Manager CasaOS dulu. Misalnya file berada di `/DATA/Downloads/si_data.pg16.sql.tgz`.
-
-Lalu jalankan deploy sekaligus restore:
-
-```bash
-cd /DATA/AppData/si-kepegawaian
+cd "$PROJECTS_ROOT/si-kepegawaian"
 ./deploy-casaos-github.sh \
   --force-env \
-  --no-cache \
   --app-port 8091 \
   --app-origin https://dinkes.kepegawaian.media \
   --postgres-container sisdmk-postgres \
@@ -119,32 +98,15 @@ cd /DATA/AppData/si-kepegawaian
   --postgres-user sisdmk_admin \
   --postgres-password 'PASSWORD_POSTGRES_SISDMK' \
   --postgres-database si_data \
-  --restore-dump /DATA/Downloads/si_data.pg16.sql.tgz
+  --restore-dump "$PROJECTS_ROOT/backup/si_data.pg16.sql.tgz"
 ```
 
-Jika dump sudah diekstrak menjadi `.sql`, path `.sql` juga bisa dipakai:
+## Update Kode
 
 ```bash
-sh deploy-casaos-github.sh --restore-dump /DATA/Downloads/si_data.pg16.sql
-```
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
 
-Jangan restore database lain ke `si_data`. Pakai hanya dump PostgreSQL yang memang berasal dari database SI SDMK.
-
-## Validasi
-
-```bash
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-docker logs --tail 80 sisdmk2-app
-docker exec sisdmk2-app npm run check:postgres
-docker exec -it sisdmk-postgres psql -U sisdmk_admin -d si_data -c "\dt"
-```
-
-## Deploy Ulang Tanpa Restore
-
-Untuk update kode berikutnya setelah push ke GitHub:
-
-```bash
-cd /DATA/AppData/si-kepegawaian
+cd "$PROJECTS_ROOT/si-kepegawaian"
 ./deploy-casaos-github.sh \
   --force-env \
   --app-port 8091 \
@@ -156,60 +118,43 @@ cd /DATA/AppData/si-kepegawaian
   --postgres-database si_data
 ```
 
-Jika ingin menjalankan Docker Compose manual dari folder app, pastikan env CasaOS ikut dibaca. Tanpa env file ini, compose bisa gagal dengan pesan `POSTGRES_PASSWORD is missing`.
+## Manual Compose
 
 ```bash
-cd /DATA/AppData/si-kepegawaian
-cd source
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian/source"
 git pull --ff-only origin main
-cp ../.env.casaos .env.casaos
-cp ../.env.casaos .env
+cp "$PROJECTS_ROOT/si-kepegawaian/.env.casaos" .env.casaos
+cp "$PROJECTS_ROOT/si-kepegawaian/.env.casaos" .env
 docker compose --env-file .env.casaos -f docker-compose.casaos.yml up -d --build
 docker logs --tail 50 sisdmk2-app
 ```
 
-## Jika User PostgreSQL Bukan `postgres`
-
-Jika container PostgreSQL CasaOS tidak punya role `postgres`, jalankan dengan user admin yang benar:
-
-```bash
-sh deploy-casaos-github.sh \
-  --postgres-container sisdmk-postgres \
-  --postgres-admin-user NAMA_USER_ADMIN \
-  --postgres-user NAMA_USER_APP \
-  --postgres-password 'PASSWORD_USER_APP' \
-  --force-env \
-  --app-port 8091 \
-  --app-origin https://dinkes.kepegawaian.media
-```
-
 ## Cloudflare Tunnel
-
-Jika memakai domain `dinkes.kepegawaian.media`, arahkan ingress Cloudflare Tunnel ke port host aplikasi:
 
 ```yaml
 ingress:
   - hostname: dinkes.kepegawaian.media
-    service: http://172.31.254.202:8091
+    service: http://127.0.0.1:8091
+  - hostname: n8n.kepegawaian.media
+    service: http://127.0.0.1:5678
   - service: http_status:404
 ```
 
-Jika IP CasaOS berubah, sesuaikan bagian `172.31.254.202`. Jika menjalankan tunnel di host yang sama, `service` juga bisa diarahkan ke `http://localhost:8091`.
+## Recovery
 
-## Troubleshooting Build CasaOS
-
-Jika build sukses tetapi container gagal dibuat karena nama sudah dipakai:
-
-```text
-Conflict. The container name "/sisdmk2-app" is already in use
-```
-
-Hapus container app lama lalu deploy ulang:
+Jika container app gagal atau port konflik:
 
 ```bash
-docker rm -f sisdmk2-app
-cd /DATA/AppData/si-kepegawaian
-sh deploy-casaos-github.sh \
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker logs --tail 160 sisdmk2-app || true
+docker rm -f sisdmk2-app || true
+
+cd "$PROJECTS_ROOT/si-kepegawaian"
+BUILD_PULL=0 BUILD_NO_CACHE=0 ./deploy-casaos-github.sh \
   --force-env \
   --app-port 8091 \
   --app-origin https://dinkes.kepegawaian.media \
@@ -220,22 +165,10 @@ sh deploy-casaos-github.sh \
   --postgres-database si_data
 ```
 
-Jika gagal karena port `3000` sudah dipakai, gunakan `--app-port 8091` seperti command di atas.
+Jika PostgreSQL gagal:
 
-Jika muncul:
-
-```text
-getaddrinfo ENOTFOUND pasir-postgres
-# atau
-getaddrinfo ENOTFOUND pasarkita-postgres
+```bash
+docker logs --tail 160 sisdmk-postgres
+docker exec -it sisdmk-postgres psql -U sisdmk_admin -d si_data -c "SELECT 1;"
+docker network inspect sisdmk2-network
 ```
-
-Berarti nama container database salah atau masih memakai catatan lama. Server ini memakai `sisdmk-postgres`.
-
-Jika muncul:
-
-```text
-password authentication failed for user "postgres"
-```
-
-Berarti user PostgreSQL salah. Server ini memakai user `sisdmk_admin`, bukan `postgres`.

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-APP_DIR="${APP_DIR:-/DATA/AppData/si-kepegawaian}"
+PROJECTS_ROOT="${PROJECTS_ROOT:-/media/devmon/Local Disk/projects}"
+APP_DIR="${APP_DIR:-$PROJECTS_ROOT/si-kepegawaian}"
 SOURCE_DIR="${SOURCE_DIR:-$APP_DIR/source}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/.env}"
-BACKUP_DIR="${BACKUP_DIR:-$APP_DIR/backup}"
+BACKUP_DIR="${BACKUP_DIR:-$PROJECTS_ROOT/backup}"
 
 APP_CONTAINER="${APP_CONTAINER:-sisdmk2-app}"
 CONTAINER_IMPORT_DIR="${CONTAINER_IMPORT_DIR:-/tmp/sisdmk2-import}"
@@ -62,11 +63,11 @@ Default:
   SHEET_NAME=$SHEET_NAME
 
 Contoh upload dari komputer lokal ke server:
-  scp "MONITORING PLT-PLH (1).xlsx" root@IP_SERVER_ONLINE:/DATA/AppData/si-kepegawaian/backup/
+  scp "MONITORING PLT-PLH (1).xlsx" admin@IP_SERVER_ONLINE:'/media/devmon/Local Disk/projects/backup/'
 
 Contoh import di server:
-  cd /DATA/AppData/si-kepegawaian/source
-  ./scripts/import-plt-server.sh "/DATA/AppData/si-kepegawaian/backup/MONITORING PLT-PLH (1).xlsx" "Mei 2026"
+  cd '/media/devmon/Local Disk/projects/si-kepegawaian/source'
+  ./scripts/import-plt-server.sh "/media/devmon/Local Disk/projects/backup/MONITORING PLT-PLH (1).xlsx" "Mei 2026"
 USAGE
 }
 
@@ -148,7 +149,7 @@ ensure_prerequisites() {
   [ -f "$INPUT_FILE" ] || {
     fail "File Excel tidak ditemukan: $INPUT_FILE"
     warn "Upload dulu ke server, contoh:"
-    warn "scp \"MONITORING PLT-PLH (1).xlsx\" root@IP_SERVER_ONLINE:/DATA/AppData/si-kepegawaian/backup/"
+    warn "scp \"MONITORING PLT-PLH (1).xlsx\" admin@IP_SERVER_ONLINE:'/media/devmon/Local Disk/projects/backup/'"
     return 1
   }
 

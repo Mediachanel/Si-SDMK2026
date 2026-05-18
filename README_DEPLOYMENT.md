@@ -1,70 +1,49 @@
 # SI-SDMK Deployment Guide
 
-## 1. Prepare Server
-
-Run on CasaOS/Armbian as root or a Docker-capable user.
-
-```bash
-docker ps
-docker network inspect sisdmk2-network >/dev/null 2>&1 || docker network create sisdmk2-network
-docker network connect sisdmk2-network sisdmk-postgres 2>/dev/null || true
-docker network connect sisdmk2-network sisdmk-n8n 2>/dev/null || true
-```
-
-Make sure Docker storage is on external storage before heavy builds/restores.
-
-## 2. Configure Env
-
-Create or update `/DATA/AppData/si-kepegawaian/source/.env.casaos`.
-
-Minimum production values:
-
-```env
-APP_PORT=8091
-APP_URL=https://dinkes.kepegawaian.media
-APP_ORIGIN=https://dinkes.kepegawaian.media
-ALLOWED_ORIGINS=https://dinkes.kepegawaian.media
-ALLOW_INSECURE_LOCAL_HTTP=false
-COOKIE_SECURE=true
-TRUST_PROXY_HEADERS=true
-
-JWT_SECRET=long-random-secret
-
-POSTGRES_HOST=sisdmk-postgres
-POSTGRES_HOSTS=sisdmk-postgres
-POSTGRES_PORT=5432
-POSTGRES_DATABASE=si_data
-POSTGRES_DATABASES=si_data
-POSTGRES_USER=sisdmk_admin
-POSTGRES_PASSWORD=server-postgres-password
-
-AI_ENABLE_N8N=true
-N8N_WEBHOOK_URL=https://n8n.kepegawaian.media/webhook/sisdmk-ai
-N8N_PUBLIC_WEBHOOK_URL=https://n8n.kepegawaian.media/webhook/sisdmk-public-chat
-N8N_API_SECRET=shared-secret
-```
-
-For n8n itself, import:
+Standar workspace production untuk STB Armbian/CasaOS:
 
 ```text
-docs/sisdmk-n8n-ai-agent.ready.workflow.json
+/media/devmon/Local Disk/projects
 ```
 
-and add this environment value to the n8n container:
+Struktur wajib:
 
-```env
-SISDMK_APP_BASE_URL=http://sisdmk2-app:3000
+```text
+projects/
+├── si-kepegawaian
+├── postgres
+├── n8n
+├── ai-agent
+├── backup
+├── uploads
+└── docker
 ```
 
-## 3. Deploy
+Docker Root Dir berada di:
 
-Quick deploy from the server shell:
+```text
+/media/devmon/Local Disk/docker-data
+```
+
+## 1. Deploy Full Copy Paste
+
+Jalankan di terminal server STB Armbian/CasaOS:
 
 ```bash
-mkdir -p /DATA/AppData/si-kepegawaian
-cd /DATA/AppData/si-kepegawaian
-curl -fsSL https://raw.githubusercontent.com/Mediachanel/SI_DATA_pgAdmin4/main/scripts/deploy-casaos-github.sh -o deploy-casaos-github.sh
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+mkdir -p "$PROJECTS_ROOT/si-kepegawaian"
+mkdir -p "$PROJECTS_ROOT/postgres/data"
+mkdir -p "$PROJECTS_ROOT/n8n/data"
+mkdir -p "$PROJECTS_ROOT/ai-agent"
+mkdir -p "$PROJECTS_ROOT/backup"
+mkdir -p "$PROJECTS_ROOT/uploads/si-kepegawaian"
+mkdir -p "$PROJECTS_ROOT/docker"
+
+cd "$PROJECTS_ROOT/si-kepegawaian"
+curl -fsSL https://raw.githubusercontent.com/Mediachanel/Si-SDMK2026/main/scripts/deploy-casaos-github.sh -o deploy-casaos-github.sh
 chmod +x deploy-casaos-github.sh
+
 ./deploy-casaos-github.sh \
   --install-deps \
   --force-env \
@@ -77,59 +56,77 @@ chmod +x deploy-casaos-github.sh
   --postgres-database si_data
 ```
 
-Manual deploy from the project root on server:
+Ganti `PASSWORD_POSTGRES_SISDMK` dengan password PostgreSQL server.
+
+## 2. Verifikasi
 
 ```bash
-cd /DATA/AppData/si-kepegawaian/source
-git pull --ff-only origin main
-cp ../.env.casaos .env.casaos
-cp ../.env.casaos .env
-docker compose --env-file .env.casaos -f docker-compose.casaos.yml up -d --build
-```
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
 
-Check:
-
-```bash
+cd "$PROJECTS_ROOT/si-kepegawaian/source"
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 docker logs --tail 100 sisdmk2-app
 docker exec sisdmk2-app npm run check:postgres
 curl -fsS http://127.0.0.1:8091/api/health
 ```
 
-## 4. Database Restore
-
-Restore plain SQL:
+## 3. Update Dari GitHub
 
 ```bash
-docker cp si_data.sql sisdmk-postgres:/tmp/si_data.sql
-docker exec -i sisdmk-postgres psql -U sisdmk_admin -d si_data -v ON_ERROR_STOP=1 -f /tmp/si_data.sql
-docker exec sisdmk-postgres rm -f /tmp/si_data.sql
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian"
+./deploy-casaos-github.sh \
+  --force-env \
+  --app-port 8091 \
+  --app-origin https://dinkes.kepegawaian.media \
+  --postgres-container sisdmk-postgres \
+  --postgres-admin-user sisdmk_admin \
+  --postgres-user sisdmk_admin \
+  --postgres-password 'PASSWORD_POSTGRES_SISDMK' \
+  --postgres-database si_data
 ```
 
-Restore compressed SQL from host:
+## 4. Restore Database
 
-```bash
-gzip -dc si_data.sql.gz | docker exec -i sisdmk-postgres psql -U sisdmk_admin -d si_data -v ON_ERROR_STOP=1
+Taruh dump PostgreSQL di:
+
+```text
+/media/devmon/Local Disk/projects/backup
 ```
 
-## 5. Backup
-
-Custom format:
+Restore `.sql` atau `.tgz`:
 
 ```bash
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian"
+./deploy-casaos-github.sh \
+  --force-env \
+  --app-port 8091 \
+  --app-origin https://dinkes.kepegawaian.media \
+  --postgres-container sisdmk-postgres \
+  --postgres-admin-user sisdmk_admin \
+  --postgres-user sisdmk_admin \
+  --postgres-password 'PASSWORD_POSTGRES_SISDMK' \
+  --postgres-database si_data \
+  --restore-dump "$PROJECTS_ROOT/backup/si_data.pg16.sql.tgz"
+```
+
+## 5. Backup Database
+
+```bash
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+mkdir -p "$PROJECTS_ROOT/backup"
 docker exec sisdmk-postgres pg_dump -U sisdmk_admin -d si_data -Fc -f /tmp/si_data.backup
-docker cp sisdmk-postgres:/tmp/si_data.backup ./backup/si_data-$(date +%F-%H%M).backup
-```
-
-Plain SQL:
-
-```bash
-docker exec sisdmk-postgres pg_dump -U sisdmk_admin -d si_data > ./backup/si_data-$(date +%F-%H%M).sql
+docker cp sisdmk-postgres:/tmp/si_data.backup "$PROJECTS_ROOT/backup/si_data-$(date +%F-%H%M).backup"
+docker exec sisdmk-postgres rm -f /tmp/si_data.backup
 ```
 
 ## 6. Cloudflare Tunnel
 
-Ingress example:
+Ingress:
 
 ```yaml
 ingress:
@@ -140,8 +137,49 @@ ingress:
   - service: http_status:404
 ```
 
-After changing Cloudflare or env, restart app:
+Restart app setelah perubahan tunnel/env:
 
 ```bash
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian/source"
 docker compose --env-file .env.casaos -f docker-compose.casaos.yml up -d
+```
+
+## 7. Recovery
+
+Jika container app gagal dibuat atau stuck:
+
+```bash
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+docker logs --tail 160 sisdmk2-app || true
+docker rm -f sisdmk2-app || true
+
+cd "$PROJECTS_ROOT/si-kepegawaian"
+./deploy-casaos-github.sh \
+  --force-env \
+  --app-port 8091 \
+  --app-origin https://dinkes.kepegawaian.media \
+  --postgres-container sisdmk-postgres \
+  --postgres-admin-user sisdmk_admin \
+  --postgres-user sisdmk_admin \
+  --postgres-password 'PASSWORD_POSTGRES_SISDMK' \
+  --postgres-database si_data
+```
+
+Jika build terlalu berat di STB RAM 2GB, jalankan ulang tanpa pull base image dan tanpa no-cache:
+
+```bash
+PROJECTS_ROOT='/media/devmon/Local Disk/projects'
+
+cd "$PROJECTS_ROOT/si-kepegawaian"
+BUILD_PULL=0 BUILD_NO_CACHE=0 ./deploy-casaos-github.sh \
+  --app-port 8091 \
+  --app-origin https://dinkes.kepegawaian.media \
+  --postgres-container sisdmk-postgres \
+  --postgres-admin-user sisdmk_admin \
+  --postgres-user sisdmk_admin \
+  --postgres-password 'PASSWORD_POSTGRES_SISDMK' \
+  --postgres-database si_data
 ```

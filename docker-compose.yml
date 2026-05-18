@@ -21,7 +21,7 @@ services:
     ports:
       - "127.0.0.1:${POSTGRES_PUBLIC_PORT:-5432}:5432"
     volumes:
-      - sisdmk2_postgres_data:/var/lib/postgresql/data
+      - "${POSTGRES_DATA_DIR:-/media/devmon/Local Disk/projects/postgres/data}:/var/lib/postgresql/data"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - sisdmk2_redis_data:/data
+      - "${REDIS_DATA_DIR:-/media/devmon/Local Disk/projects/docker/redis}:/data"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -83,7 +83,7 @@ services:
     ports:
       - "${APP_BIND_HOST:-127.0.0.1}:${APP_PORT:-8080}:3000"
     volumes:
-      - sisdmk2_uploads:/app/storage
+      - "${UPLOADS_DIR:-/media/devmon/Local Disk/projects/uploads/si-kepegawaian}:/app/storage"
     read_only: true
     tmpfs:
       - /tmp
@@ -93,8 +93,3 @@ services:
       - ALL
     init: true
     pids_limit: 256
-
-volumes:
-  sisdmk2_postgres_data:
-  sisdmk2_redis_data:
-  sisdmk2_uploads:

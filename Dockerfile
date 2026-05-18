@@ -7,7 +7,9 @@ FROM node:20-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN npm run build \
+  && npm prune --omit=dev \
+  && npm cache clean --force
 
 FROM node:20-bookworm-slim AS python-deps
 WORKDIR /app

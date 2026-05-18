@@ -2,7 +2,14 @@
 set -eu
 
 APP_NAME="${APP_NAME:-sisdmk2}"
-APP_PORT="${APP_PORT:-3000}"
+PROJECTS_ROOT="${PROJECTS_ROOT:-/media/devmon/Local Disk/projects}"
+BACKUP_DIR="${BACKUP_DIR:-$PROJECTS_ROOT/backup}"
+UPLOADS_DIR="${UPLOADS_DIR:-$PROJECTS_ROOT/uploads/si-kepegawaian}"
+POSTGRES_DATA_DIR="${POSTGRES_DATA_DIR:-$PROJECTS_ROOT/postgres/data}"
+N8N_DATA_DIR="${N8N_DATA_DIR:-$PROJECTS_ROOT/n8n/data}"
+AI_AGENT_DIR="${AI_AGENT_DIR:-$PROJECTS_ROOT/ai-agent}"
+DOCKER_DIR="${DOCKER_DIR:-$PROJECTS_ROOT/docker}"
+APP_PORT="${APP_PORT:-8091}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.casaos.yml}"
 ENV_FILE="${ENV_FILE:-.env.casaos}"
 NETWORK_NAME="${NETWORK_NAME:-sisdmk2-network}"
@@ -22,6 +29,7 @@ POSTGRES_APPLICATION_NAME="${POSTGRES_APPLICATION_NAME:-sisdmk2-app}"
 DASHBOARD_CACHE_TTL_MS="${DASHBOARD_CACHE_TTL_MS:-30000}"
 DASHBOARD_DATA_CACHE_TTL_MS="${DASHBOARD_DATA_CACHE_TTL_MS:-30000}"
 APP_ORIGIN="${APP_ORIGIN:-}"
+ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}"
 JWT_SECRET="${JWT_SECRET:-}"
 ALLOW_INSECURE_LOCAL_HTTP="${ALLOW_INSECURE_LOCAL_HTTP:-}"
 COOKIE_SECURE="${COOKIE_SECURE:-}"
@@ -47,14 +55,17 @@ die() {
 
 usage() {
   cat <<'USAGE'
-Deploy SI Kepegawaian ke CasaOS dari folder source project.
+Deploy SI Kepegawaian ke CasaOS/STB Armbian dari folder source project.
 
-Jalankan di server CasaOS/DietPi dari root project:
-  sh scripts/deploy-casaos.sh --app-origin http://IP-CASAOS:3000 --postgres-password PASSWORD_DB
+Jalankan di server dari:
+  /media/devmon/Local Disk/projects/si-kepegawaian/source
+
+Contoh:
+  sh scripts/deploy-casaos.sh --app-origin http://IP-CASAOS:8091 --postgres-password PASSWORD_DB
 
 Options:
-  --app-port PORT             Port host aplikasi, default 3000
-  --app-origin URL            URL aplikasi, contoh http://192.168.1.10:3000
+  --app-port PORT             Port host aplikasi, default 8091
+  --app-origin URL            URL aplikasi, contoh http://192.168.1.10:8091
   --jwt-secret VALUE          JWT secret production
   --trust-proxy-headers true|false Percaya header Cloudflare/proxy, default true
   --ai-enable-n8n true|false  Aktifkan bridge AI n8n, default true
@@ -72,7 +83,7 @@ Options:
   -h, --help                  Tampilkan bantuan
 
 Environment variable juga bisa dipakai, misalnya:
-  APP_ORIGIN=http://192.168.1.10:3000 POSTGRES_PASSWORD=secret sh scripts/deploy-casaos.sh
+  APP_ORIGIN=http://192.168.1.10:8091 POSTGRES_PASSWORD=secret sh scripts/deploy-casaos.sh
 USAGE
 }
 
@@ -223,6 +234,10 @@ write_env_file() {
     JWT_SECRET="$(generate_secret)"
   fi
 
+  if [ -z "$ALLOWED_ORIGINS" ]; then
+    ALLOWED_ORIGINS="$APP_ORIGIN"
+  fi
+
   if [ -z "$POSTGRES_PASSWORD" ]; then
     die "POSTGRES_PASSWORD wajib diisi. Pakai --postgres-password atau set env POSTGRES_PASSWORD."
   fi
@@ -241,8 +256,16 @@ write_env_file() {
     esac
   fi
 
+  mkdir -p "$PROJECTS_ROOT" "$BACKUP_DIR" "$UPLOADS_DIR" "$POSTGRES_DATA_DIR" "$N8N_DATA_DIR" "$AI_AGENT_DIR" "$DOCKER_DIR"
   umask 077
   cat >"$ENV_FILE" <<EOF
+PROJECTS_ROOT="$PROJECTS_ROOT"
+BACKUP_DIR="$BACKUP_DIR"
+UPLOADS_DIR="$UPLOADS_DIR"
+POSTGRES_DATA_DIR="$POSTGRES_DATA_DIR"
+N8N_DATA_DIR="$N8N_DATA_DIR"
+AI_AGENT_DIR="$AI_AGENT_DIR"
+DOCKER_DIR="$DOCKER_DIR"
 APP_PORT=$APP_PORT
 POSTGRES_PORT=$POSTGRES_PORT
 POSTGRES_CONNECT_TIMEOUT_MS=$POSTGRES_CONNECT_TIMEOUT_MS
@@ -256,6 +279,7 @@ DASHBOARD_DATA_CACHE_TTL_MS=$DASHBOARD_DATA_CACHE_TTL_MS
 JWT_SECRET=$JWT_SECRET
 APP_URL=$APP_ORIGIN
 APP_ORIGIN=$APP_ORIGIN
+ALLOWED_ORIGINS=$ALLOWED_ORIGINS
 ALLOW_INSECURE_LOCAL_HTTP=$ALLOW_INSECURE_LOCAL_HTTP
 COOKIE_SECURE=$COOKIE_SECURE
 TRUST_PROXY_HEADERS=$TRUST_PROXY_HEADERS

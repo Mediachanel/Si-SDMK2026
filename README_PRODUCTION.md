@@ -9,6 +9,8 @@ Runtime     : Docker on CasaOS/Armbian
 Database    : PostgreSQL 16
 App domain  : https://dinkes.kepegawaian.media
 n8n domain  : https://n8n.kepegawaian.media
+Workspace   : /media/devmon/Local Disk/projects
+Docker root : /media/devmon/Local Disk/docker-data
 ```
 
 Current server mapping:
@@ -71,8 +73,9 @@ Import `docs/sisdmk-n8n-ai-agent.ready.workflow.json` into n8n and set
 
 ## Runtime Requirements
 
-- Docker data root should live on external storage to avoid `ENOSPC`.
+- Docker data root must be `/media/devmon/Local Disk/docker-data` to avoid `ENOSPC` on STB internal storage.
 - `sisdmk2-app`, `sisdmk-postgres`, and `sisdmk-n8n` must be on the same Docker network when using container hostnames.
+- Project source, uploads, backups, PostgreSQL data, n8n data, AI agent files, and Docker bind mounts must live under `/media/devmon/Local Disk/projects`.
 - Cloudflare Tunnel must forward `dinkes.kepegawaian.media` to the app port and `n8n.kepegawaian.media` to n8n.
 - Next.js image cache must be writable. Compose uses tmpfs at `/app/.next/cache`.
 - Dashboard uses short in-memory caches (`DASHBOARD_CACHE_TTL_MS` and `DASHBOARD_DATA_CACHE_TTL_MS`, default 30 seconds) to avoid rebuilding heavy chart payloads and rereading scoped employee data on every page/filter open.

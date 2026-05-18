@@ -1,10 +1,17 @@
 #!/usr/bin/env sh
 set -eu
 
-REPO_URL="${REPO_URL:-https://github.com/Mediachanel/SI_DATA_pgAdmin4.git}"
+PROJECTS_ROOT="${PROJECTS_ROOT:-/media/devmon/Local Disk/projects}"
+REPO_URL="${REPO_URL:-https://github.com/Mediachanel/Si-SDMK2026.git}"
 BRANCH="${BRANCH:-main}"
-APP_DIR="${APP_DIR:-/DATA/AppData/si-kepegawaian}"
+APP_DIR="${APP_DIR:-$PROJECTS_ROOT/si-kepegawaian}"
 SOURCE_DIR="${SOURCE_DIR:-$APP_DIR/source}"
+BACKUP_DIR="${BACKUP_DIR:-$PROJECTS_ROOT/backup}"
+UPLOADS_DIR="${UPLOADS_DIR:-$PROJECTS_ROOT/uploads/si-kepegawaian}"
+POSTGRES_DATA_DIR="${POSTGRES_DATA_DIR:-$PROJECTS_ROOT/postgres/data}"
+N8N_DATA_DIR="${N8N_DATA_DIR:-$PROJECTS_ROOT/n8n/data}"
+AI_AGENT_DIR="${AI_AGENT_DIR:-$PROJECTS_ROOT/ai-agent}"
+DOCKER_DIR="${DOCKER_DIR:-$PROJECTS_ROOT/docker}"
 APP_PORT="${APP_PORT:-8091}"
 APP_BIND_HOST="${APP_BIND_HOST:-0.0.0.0}"
 APP_ORIGIN="${APP_ORIGIN:-}"
@@ -43,7 +50,7 @@ RESTORE_USER="${RESTORE_USER:-}"
 FORCE_ENV="${FORCE_ENV:-0}"
 INSTALL_DEPS="${INSTALL_DEPS:-0}"
 BUILD_NO_CACHE="${BUILD_NO_CACHE:-0}"
-BUILD_PULL="${BUILD_PULL:-1}"
+BUILD_PULL="${BUILD_PULL:-0}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 SKIP_HEALTH_CHECK="${SKIP_HEALTH_CHECK:-0}"
 LOG_LINES="${LOG_LINES:-100}"
@@ -59,7 +66,7 @@ die() {
 
 usage() {
   cat <<'USAGE'
-Deploy SI Kepegawaian dari GitHub langsung di CasaOS/DietPi.
+Deploy SI Kepegawaian dari GitHub langsung di CasaOS/DietPi/STB Armbian.
 
 Usage:
   sh scripts/deploy-casaos-github.sh [options]
@@ -67,7 +74,7 @@ Usage:
 Options:
   --repo-url URL              GitHub repo URL
   --branch NAME               Branch yang akan dideploy
-  --app-dir PATH              Folder data app di CasaOS
+  --app-dir PATH              Folder app, default /media/devmon/Local Disk/projects/si-kepegawaian
   --app-port PORT             Port host untuk aplikasi, default 8091
   --app-bind-host HOST        Bind host Docker, default 0.0.0.0
   --app-origin URL            URL publik aplikasi, contoh https://info.kepegawaian.media
@@ -93,7 +100,7 @@ Options:
   --force-env                 Tulis ulang .env.casaos
   --install-deps              Install git/ca-certificates via apt jika belum ada
   --no-cache                  Build image tanpa cache Docker
-  --no-pull                   Jangan pull base image saat build
+  --no-pull                   Jangan pull base image saat build, default aktif untuk STB
   --skip-build                Pull source dan restart tanpa build ulang
   --skip-health-check         Lewati validasi HTTP setelah container start
   -h, --help                  Tampilkan bantuan
@@ -382,9 +389,16 @@ write_env_file() {
     esac
   fi
 
-  mkdir -p "$APP_DIR"
+  mkdir -p "$PROJECTS_ROOT" "$APP_DIR" "$SOURCE_DIR" "$BACKUP_DIR" "$UPLOADS_DIR" "$POSTGRES_DATA_DIR" "$N8N_DATA_DIR" "$AI_AGENT_DIR" "$DOCKER_DIR"
   umask 077
   cat > "$env_file" <<ENV
+PROJECTS_ROOT="$PROJECTS_ROOT"
+BACKUP_DIR="$BACKUP_DIR"
+UPLOADS_DIR="$UPLOADS_DIR"
+POSTGRES_DATA_DIR="$POSTGRES_DATA_DIR"
+N8N_DATA_DIR="$N8N_DATA_DIR"
+AI_AGENT_DIR="$AI_AGENT_DIR"
+DOCKER_DIR="$DOCKER_DIR"
 APP_PORT=$APP_PORT
 APP_BIND_HOST=$APP_BIND_HOST
 JWT_SECRET=$JWT_SECRET
@@ -420,7 +434,7 @@ ENV
 }
 
 sync_source() {
-  mkdir -p "$APP_DIR"
+  mkdir -p "$PROJECTS_ROOT" "$APP_DIR" "$BACKUP_DIR" "$UPLOADS_DIR" "$POSTGRES_DATA_DIR" "$N8N_DATA_DIR" "$AI_AGENT_DIR" "$DOCKER_DIR"
 
   if [ -d "$SOURCE_DIR/.git" ]; then
     log "Update source dari GitHub: $SOURCE_DIR"
@@ -587,7 +601,7 @@ restore_dump() {
     restore_user="$POSTGRES_USER"
   fi
 
-  tmp_dir="/tmp/sisdmk2-restore-$$"
+  tmp_dir="$APP_DIR/tmp/sisdmk2-restore-$$"
   mkdir -p "$tmp_dir"
   sql_file="$(extract_restore_sql "$RESTORE_DUMP" "$tmp_dir")"
   [ -n "$sql_file" ] && [ -f "$sql_file" ] || die "File SQL tidak ditemukan di dump: $RESTORE_DUMP"
