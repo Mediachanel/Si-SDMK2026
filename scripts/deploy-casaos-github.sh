@@ -61,6 +61,7 @@ MIGRATE_PHASE1="${MIGRATE_PHASE1:-0}"
 SEED_SUPER_ADMIN="${SEED_SUPER_ADMIN:-0}"
 SEED_SUPER_ADMIN_USERNAME="${SEED_SUPER_ADMIN_USERNAME:-superadmin}"
 SEED_SUPER_ADMIN_PASSWORD="${SEED_SUPER_ADMIN_PASSWORD:-}"
+SEED_QNA_DEFAULTS="${SEED_QNA_DEFAULTS:-0}"
 LOG_LINES="${LOG_LINES:-100}"
 
 log() {
@@ -119,6 +120,7 @@ Options:
   --seed-super-admin          Buat/reset akun Super Admin setelah app start
   --super-admin-username NAME Username Super Admin, default superadmin
   --super-admin-password VALUE Password Super Admin, minimal 12 karakter
+  --seed-qna-defaults         Buat tabel QnA publik dan isi pertanyaan default
   -h, --help                  Tampilkan bantuan
 
 Contoh:
@@ -318,6 +320,10 @@ while [ $# -gt 0 ]; do
       need_value "$@"
       SEED_SUPER_ADMIN_PASSWORD="$2"
       shift 2
+      ;;
+    --seed-qna-defaults)
+      SEED_QNA_DEFAULTS="1"
+      shift
       ;;
     -h|--help)
       usage
@@ -796,6 +802,13 @@ seed_super_admin() {
     sisdmk2-app npm run seed:phase1
 }
 
+seed_qna_defaults() {
+  [ "$SEED_QNA_DEFAULTS" = "1" ] || return 0
+
+  log "Membuat tabel dan konten default QnA publik..."
+  docker exec sisdmk2-app npm run seed:qna
+}
+
 build_and_start_app() {
   cd "$SOURCE_DIR"
 
@@ -884,6 +897,7 @@ build_and_start_app
 check_app
 run_phase1_migration
 seed_super_admin
+seed_qna_defaults
 wait_for_http_health
 
 show_summary

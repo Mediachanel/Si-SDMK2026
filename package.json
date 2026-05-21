@@ -19,6 +19,7 @@
     "migrate:phase8": "node scripts/migrate-phase8.mjs",
     "migrate:fuzzy-ai": "node scripts/migrate-fuzzy-ai.mjs",
     "seed:phase1": "node scripts/seed-phase1-rbac.mjs",
+    "seed:qna": "node scripts/seed-qna-defaults.mjs",
     "check:postgres": "node scripts/check-postgres-connection.mjs",
     "import:usulan": "node scripts/import-usulan-sql.mjs",
     "import:plt-plh": "node scripts/import-monitoring-plt-plh.mjs"

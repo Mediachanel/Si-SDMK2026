@@ -29,6 +29,7 @@ Use this before declaring a deployment healthy.
 - `/api/health` returns success.
 - Login works on public domain.
 - Super Admin login uses the database username, for example `superadmin`, not the UI label `SUPER ADMIN`.
+- Public QnA shows active categories and published questions; seed with `--seed-qna-defaults` when empty.
 - Session persists after refresh.
 - Logout clears session.
 - Image/cache pages do not produce `/app/.next/cache/images` errors.
@@ -38,6 +39,7 @@ Use this before declaring a deployment healthy.
 - `docker exec sisdmk2-app npm run check:postgres` passes.
 - `si_data` contains imported production tables.
 - Super Admin account exists; reset with deploy flags `--migrate-phase1 --seed-super-admin` when login returns 401.
+- `qna_category` and `qna_item` exist and contain published rows.
 - Backup file exists after restore.
 
 ## AI

@@ -114,7 +114,8 @@ Jika deploy pertama butuh membuat/reset akun Super Admin, tambahkan flag ini pad
   --migrate-phase1 \
   --seed-super-admin \
   --super-admin-username superadmin \
-  --super-admin-password 'PASSWORD_SUPER_ADMIN_MINIMAL_12'
+  --super-admin-password 'PASSWORD_SUPER_ADMIN_MINIMAL_12' \
+  --seed-qna-defaults
 ```
 
 Gunakan username `superadmin` saat login. Label di UI boleh terlihat sebagai `SUPER ADMIN`, tetapi input login harus sesuai username yang disimpan di database.
@@ -152,7 +153,8 @@ POSTGRES_PASSWORD='PASSWORD_POSTGRES_SISDMK' \
   --migrate-phase1 \
   --seed-super-admin \
   --super-admin-username superadmin \
-  --super-admin-password 'PASSWORD_SUPER_ADMIN_MINIMAL_12'
+  --super-admin-password 'PASSWORD_SUPER_ADMIN_MINIMAL_12' \
+  --seed-qna-defaults
 ```
 
 Untuk cek konfigurasi tanpa build/start app, tambahkan:
@@ -204,9 +206,27 @@ SEED_SUPER_ADMIN_PASSWORD="$SEED_SUPER_ADMIN_PASSWORD" \
   --postgres-container sisdmk-postgres \
   --postgres-user sisdmk_admin \
   --postgres-admin-user sisdmk_admin \
-  --postgres-database si_data
+  --postgres-database si_data \
+  --seed-qna-defaults
 
 unset SEED_SUPER_ADMIN_PASSWORD
+```
+
+Jika yang kosong hanya QnA publik, isi QnA default tanpa reset password:
+
+```bash
+cd /DATA/AppData/si-kepegawaian
+
+./deploy-casaos-github.sh \
+  --force-env \
+  --skip-build \
+  --seed-qna-defaults \
+  --app-port 8091 \
+  --app-origin https://info.kepegawaian.media \
+  --postgres-container sisdmk-postgres \
+  --postgres-user sisdmk_admin \
+  --postgres-admin-user sisdmk_admin \
+  --postgres-database si_data
 ```
 
 Checklist web:
