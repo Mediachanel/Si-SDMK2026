@@ -108,6 +108,17 @@ POSTGRES_PASSWORD='PASSWORD_POSTGRES_SISDMK' \
   --postgres-database si_data
 ```
 
+Jika deploy pertama butuh membuat/reset akun Super Admin, tambahkan flag ini pada command deploy:
+
+```bash
+  --migrate-phase1 \
+  --seed-super-admin \
+  --super-admin-username superadmin \
+  --super-admin-password 'PASSWORD_SUPER_ADMIN_MINIMAL_12'
+```
+
+Gunakan username `superadmin` saat login. Label di UI boleh terlihat sebagai `SUPER ADMIN`, tetapi input login harus sesuai username yang disimpan di database.
+
 Ganti `POSTGRES_CONTAINER` dengan nama container dari hasil inventory. Jika belum ada container khusus SISDMK, buat dulu container PostgreSQL khusus atau gunakan database yang sudah ada dengan sengaja, bukan karena tebak-tebakan.
 
 Contoh deploy yang membuat PostgreSQL khusus SISDMK:
@@ -137,7 +148,11 @@ POSTGRES_PASSWORD='PASSWORD_POSTGRES_SISDMK' \
   --postgres-container sisdmk-postgres \
   --postgres-user sisdmk_admin \
   --postgres-admin-user sisdmk_admin \
-  --postgres-database si_data
+  --postgres-database si_data \
+  --migrate-phase1 \
+  --seed-super-admin \
+  --super-admin-username superadmin \
+  --super-admin-password 'PASSWORD_SUPER_ADMIN_MINIMAL_12'
 ```
 
 Untuk cek konfigurasi tanpa build/start app, tambahkan:
@@ -167,6 +182,31 @@ curl -fsS http://127.0.0.1:8091/api/health
 docker exec sisdmk2-app npm run check:postgres
 docker logs --tail 100 sisdmk2-app
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+
+Jika `/api/health` sukses tetapi login menampilkan “Username atau password tidak sesuai”, reset akun Super Admin tanpa rebuild:
+
+```bash
+cd /DATA/AppData/si-kepegawaian
+
+read -s -p "Password Super Admin baru: " SEED_SUPER_ADMIN_PASSWORD
+echo
+
+SEED_SUPER_ADMIN_PASSWORD="$SEED_SUPER_ADMIN_PASSWORD" \
+./deploy-casaos-github.sh \
+  --force-env \
+  --skip-build \
+  --migrate-phase1 \
+  --seed-super-admin \
+  --super-admin-username superadmin \
+  --app-port 8091 \
+  --app-origin https://info.kepegawaian.media \
+  --postgres-container sisdmk-postgres \
+  --postgres-user sisdmk_admin \
+  --postgres-admin-user sisdmk_admin \
+  --postgres-database si_data
+
+unset SEED_SUPER_ADMIN_PASSWORD
 ```
 
 Checklist web:

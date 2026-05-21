@@ -57,6 +57,10 @@ SKIP_BUILD="${SKIP_BUILD:-0}"
 SKIP_HEALTH_CHECK="${SKIP_HEALTH_CHECK:-0}"
 PREFLIGHT_ONLY="${PREFLIGHT_ONLY:-0}"
 PRUNE_DOCKER_CACHE="${PRUNE_DOCKER_CACHE:-0}"
+MIGRATE_PHASE1="${MIGRATE_PHASE1:-0}"
+SEED_SUPER_ADMIN="${SEED_SUPER_ADMIN:-0}"
+SEED_SUPER_ADMIN_USERNAME="${SEED_SUPER_ADMIN_USERNAME:-superadmin}"
+SEED_SUPER_ADMIN_PASSWORD="${SEED_SUPER_ADMIN_PASSWORD:-}"
 LOG_LINES="${LOG_LINES:-100}"
 
 log() {
@@ -111,6 +115,10 @@ Options:
   --skip-health-check         Lewati validasi HTTP setelah container start
   --preflight-only            Validasi source/env/database/compose tanpa build/start app
   --prune-docker-cache        Bersihkan build cache dan dangling image sebelum build
+  --migrate-phase1            Jalankan migration RBAC/app_users/audit_logs Phase 1
+  --seed-super-admin          Buat/reset akun Super Admin setelah app start
+  --super-admin-username NAME Username Super Admin, default superadmin
+  --super-admin-password VALUE Password Super Admin, minimal 12 karakter
   -h, --help                  Tampilkan bantuan
 
 Contoh:
@@ -292,6 +300,24 @@ while [ $# -gt 0 ]; do
     --prune-docker-cache)
       PRUNE_DOCKER_CACHE="1"
       shift
+      ;;
+    --migrate-phase1)
+      MIGRATE_PHASE1="1"
+      shift
+      ;;
+    --seed-super-admin)
+      SEED_SUPER_ADMIN="1"
+      shift
+      ;;
+    --super-admin-username)
+      need_value "$@"
+      SEED_SUPER_ADMIN_USERNAME="$2"
+      shift 2
+      ;;
+    --super-admin-password)
+      need_value "$@"
+      SEED_SUPER_ADMIN_PASSWORD="$2"
+      shift 2
       ;;
     -h|--help)
       usage
@@ -745,6 +771,31 @@ check_app() {
   die "Cek koneksi PostgreSQL dari app gagal."
 }
 
+run_phase1_migration() {
+  [ "$MIGRATE_PHASE1" = "1" ] || return 0
+
+  log "Menjalankan migration Phase 1 RBAC/app_users/audit_logs..."
+  docker exec sisdmk2-app npm run migrate:phase1
+}
+
+seed_super_admin() {
+  [ "$SEED_SUPER_ADMIN" = "1" ] || return 0
+
+  if [ -z "$SEED_SUPER_ADMIN_PASSWORD" ]; then
+    die "Isi --super-admin-password atau env SEED_SUPER_ADMIN_PASSWORD untuk --seed-super-admin."
+  fi
+
+  if [ "${#SEED_SUPER_ADMIN_PASSWORD}" -lt 12 ]; then
+    die "Password Super Admin minimal 12 karakter."
+  fi
+
+  log "Membuat/reset akun Super Admin '$SEED_SUPER_ADMIN_USERNAME'..."
+  docker exec \
+    -e SEED_SUPER_ADMIN_USERNAME="$SEED_SUPER_ADMIN_USERNAME" \
+    -e SEED_SUPER_ADMIN_PASSWORD="$SEED_SUPER_ADMIN_PASSWORD" \
+    sisdmk2-app npm run seed:phase1
+}
+
 build_and_start_app() {
   cd "$SOURCE_DIR"
 
@@ -831,6 +882,8 @@ fi
 prune_docker_cache
 build_and_start_app
 check_app
+run_phase1_migration
+seed_super_admin
 wait_for_http_health
 
 show_summary
