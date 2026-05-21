@@ -3,6 +3,7 @@ import argparse
 import csv
 import datetime as dt
 import io
+import re
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -10,9 +11,7 @@ from openpyxl import load_workbook
 
 TARGET_TABLES = [
     "alamat",
-    "anak",
     "keluarga",
-    "pasangan",
     "pegawai",
     "riwayat_gaji_pokok",
     "riwayat_hukuman_disiplin",
@@ -169,8 +168,6 @@ TABLE_COLUMNS = {
     "pegawai": PEGAWAI_COLUMNS,
     "alamat": ALAMAT_COLUMNS,
     "keluarga": KELUARGA_COLUMNS,
-    "pasangan": PASANGAN_COLUMNS,
-    "anak": ANAK_COLUMNS,
     "riwayat_jabatan": RIWAYAT_JABATAN_COLUMNS,
     "riwayat_pangkat": RIWAYAT_PANGKAT_COLUMNS,
     "riwayat_pendidikan": RIWAYAT_PENDIDIKAN_COLUMNS,
@@ -231,6 +228,50 @@ def normalize_education(value):
     if text == "SD" or " SD " in f" {text} ":
         return "SD"
     return raw
+
+
+def normalize_region_code(value):
+    text = clean(value)
+    if not text:
+        return None
+    digits = "".join(char for char in str(text) if char.isdigit())
+    return digits or None
+
+
+def normalize_date(value):
+    if value is None:
+        return None
+    if isinstance(value, dt.datetime):
+        return value.date().isoformat()
+    if isinstance(value, dt.date):
+        return value.isoformat()
+    if isinstance(value, (int, float)):
+        number = int(value)
+        if 20000 <= number <= 60000:
+            return (dt.date(1899, 12, 30) + dt.timedelta(days=number)).isoformat()
+        return None
+    text = clean(value)
+    if not text:
+        return None
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}(?: 00:00:00)?", text):
+        return text[:10]
+    for fmt in ("%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+        try:
+            return dt.datetime.strptime(text, fmt).date().isoformat()
+        except ValueError:
+            pass
+    return None
+
+
+def looks_like_person_name(value):
+    text = clean(value)
+    if not text:
+        return False
+    if text.upper() in {"L", "P", "LAKI-LAKI", "PEREMPUAN"}:
+        return False
+    if re.fullmatch(r"\d+(?:\.0)?", text):
+        return False
+    return len(text) >= 3
 
 
 def copy_value(value):
@@ -306,7 +347,7 @@ def build_rows(xlsx_path):
     today = dt.date.today().isoformat()
     ukpd_ids = {}
     output = {table: [] for table in TARGET_TABLES}
-    counters = {table: 1 for table in TARGET_TABLES}
+    counters = {table: 1 for table in [*TARGET_TABLES, "anak", "pasangan"]}
 
     def next_id(table):
         value = counters[table]
@@ -320,7 +361,7 @@ def build_rows(xlsx_path):
         if not nama and not nama_ukpd:
             continue
 
-        id_pegawai = int(float(get("No") or len(output["pegawai"]) + 1))
+        id_pegawai = len(output["pegawai"]) + 1
         if nama_ukpd not in ukpd_ids:
             ukpd_ids[nama_ukpd] = len(ukpd_ids) + 1
         id_ukpd = ukpd_ids[nama_ukpd]
@@ -335,7 +376,7 @@ def build_rows(xlsx_path):
             "nama": nama,
             "jenis_kelamin": normalize_gender(gender_raw),
             "tempat_lahir": get("TEMPAT LAHIR"),
-            "tanggal_lahir": get("TANGGAL LAHIR"),
+            "tanggal_lahir": normalize_date(get("TANGGAL LAHIR")),
             "nik": get("NIK"),
             "agama": get("AGAMA"),
             "nama_ukpd": nama_ukpd,
@@ -350,7 +391,7 @@ def build_rows(xlsx_path):
             "nama_jabatan_menpan": jabatan_menpan_raw,
             "struktur_atasan_langsung": get("STRUKTUR ATASAN LANGSUNG"),
             "pangkat_golongan": get("PANGKAT / GOLONGAN"),
-            "tmt_pangkat_terakhir": get("TMT PANGKAT TERAKHIR"),
+            "tmt_pangkat_terakhir": normalize_date(get("TMT PANGKAT TERAKHIR")),
             "jenjang_pendidikan": normalize_education(pendidikan_raw),
             "program_studi": get("PROGRAM STUDI"),
             "nama_universitas": get("NAMA UNIVERSITAS"),
@@ -361,7 +402,7 @@ def build_rows(xlsx_path):
             "status_perkawinan": get("Status Perkawinan"),
             "gelar_depan": get("Gelar Depan"),
             "gelar_belakang": get("Gelar Belakang"),
-            "tmt_kerja_ukpd": get("TMT KERJA DI UKPD SAAT INI"),
+            "tmt_kerja_ukpd": normalize_date(get("TMT KERJA DI UKPD SAAT INI")),
             "created_at": today,
             "id_ukpd": id_ukpd,
             "ukpd_id": id_ukpd,
@@ -382,10 +423,10 @@ def build_rows(xlsx_path):
                 "kecamatan": get(f"{prefix}_KECAMATAN"),
                 "kota_kabupaten": get(f"{prefix}_KOTA/KABUPATEN"),
                 "provinsi": get(f"{prefix}_PROVINSI"),
-                "kode_provinsi": get(f"Kode {prefix.title()} Provinsi"),
-                "kode_kota_kab": get(f"Kode {prefix.title()} Kota/Kab"),
-                "kode_kecamatan": get(f"Kode {prefix.title()} Kecamatan"),
-                "kode_kelurahan": get(f"Kode {prefix.title()} Kelurahan"),
+                "kode_provinsi": normalize_region_code(get(f"Kode {prefix.title()} Provinsi")),
+                "kode_kota_kab": normalize_region_code(get(f"Kode {prefix.title()} Kota/Kab")),
+                "kode_kecamatan": normalize_region_code(get(f"Kode {prefix.title()} Kecamatan")),
+                "kode_kelurahan": normalize_region_code(get(f"Kode {prefix.title()} Kelurahan")),
                 "created_at": today,
             }
             if any(alamat.get(field) for field in ALAMAT_COLUMNS if field not in {"id", "id_pegawai", "tipe", "created_at"}):
@@ -404,7 +445,6 @@ def build_rows(xlsx_path):
                 "pekerjaan": get("PEKERJAAN"),
                 "created_at": today,
             }
-            output["pasangan"].append(pasangan)
             output["keluarga"].append({
                 "id": next_id("keluarga"),
                 "id_pegawai": id_pegawai,
@@ -428,7 +468,7 @@ def build_rows(xlsx_path):
         for urutan in [1, 2, 3]:
             suffix = f"KE-{urutan}"
             nama_anak = get(f"NAMA ANAK {suffix}")
-            if not nama_anak:
+            if not looks_like_person_name(nama_anak):
                 continue
             tempat_key = "TEMPAT LAHIR 2" if urutan == 2 else f"TEMPAT LAHIR ANAK {suffix}"
             anak_id = next_id("anak")
@@ -439,11 +479,10 @@ def build_rows(xlsx_path):
                 "nama": nama_anak,
                 "jenis_kelamin": normalize_gender(get(f"JENIS KELAMIN ANAK {suffix}")),
                 "tempat_lahir": get(tempat_key),
-                "tanggal_lahir": get(f"TANGGAL LAHIR ANAK {suffix}"),
+                "tanggal_lahir": normalize_date(get(f"TANGGAL LAHIR ANAK {suffix}")),
                 "pekerjaan": get(f"PEKERJAAN ANAK {suffix}"),
                 "created_at": today,
             }
-            output["anak"].append(anak)
             output["keluarga"].append({
                 "id": next_id("keluarga"),
                 "id_pegawai": id_pegawai,
@@ -548,9 +587,7 @@ def write_sql(output_path, rows_by_table, source_path):
 
         sequence_tables = {
             "alamat": "id",
-            "anak": "id",
             "keluarga": "id",
-            "pasangan": "id",
             "pegawai": "id_pegawai",
             "riwayat_jabatan": "id",
             "riwayat_pangkat": "id",
