@@ -736,6 +736,14 @@ function pickPegawaiRelations(data = {}) {
   return relations;
 }
 
+function pickEditablePegawaiRelations(data = {}) {
+  const relations = {};
+  for (const key of ["alamat", "pasangan", "anak", "keluarga"]) {
+    if (hasOwn(data, key)) relations[key] = data[key];
+  }
+  return relations;
+}
+
 export async function getUkpdData() {
   const rows = await queryRows("SELECT * FROM `ukpd` ORDER BY `nama_ukpd` ASC");
   return rows.map(normalizeUkpd);
@@ -1075,7 +1083,7 @@ export async function updatePegawaiData(id, data) {
       );
     }
     await savePegawaiRelations(connection, Number(id), {
-      ...pickPegawaiRelations(data),
+      ...pickEditablePegawaiRelations(data),
       nip: data.nip ?? data.current_nip,
       nama: data.nama ?? data.current_nama
     });
