@@ -28,6 +28,7 @@ N8N_WEBHOOK_RETRIES="${N8N_WEBHOOK_RETRIES:-1}"
 TRUST_PROXY_HEADERS="${TRUST_PROXY_HEADERS:-true}"
 NETWORK_NAME="${NETWORK_NAME:-sisdmk2-network}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-sisdmk-postgres}"
+POSTGRES_IMAGE="${POSTGRES_IMAGE:-pgvector/pgvector:pg16}"
 N8N_CONTAINER="${N8N_CONTAINER:-sisdmk-n8n}"
 POSTGRES_ADMIN_USER="${POSTGRES_ADMIN_USER:-}"
 POSTGRES_DATABASE="${POSTGRES_DATABASE:-si_data}"
@@ -45,6 +46,7 @@ POSTGRES_APPLICATION_NAME="${POSTGRES_APPLICATION_NAME:-sisdmk2-app}"
 DASHBOARD_CACHE_TTL_MS="${DASHBOARD_CACHE_TTL_MS:-30000}"
 DASHBOARD_DATA_CACHE_TTL_MS="${DASHBOARD_DATA_CACHE_TTL_MS:-30000}"
 ENSURE_DATABASE="${ENSURE_DATABASE:-1}"
+CREATE_POSTGRES_CONTAINER="${CREATE_POSTGRES_CONTAINER:-0}"
 RESTORE_DUMP="${RESTORE_DUMP:-}"
 RESTORE_USER="${RESTORE_USER:-}"
 FORCE_ENV="${FORCE_ENV:-0}"
@@ -53,6 +55,8 @@ BUILD_NO_CACHE="${BUILD_NO_CACHE:-0}"
 BUILD_PULL="${BUILD_PULL:-0}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 SKIP_HEALTH_CHECK="${SKIP_HEALTH_CHECK:-0}"
+PREFLIGHT_ONLY="${PREFLIGHT_ONLY:-0}"
+PRUNE_DOCKER_CACHE="${PRUNE_DOCKER_CACHE:-0}"
 LOG_LINES="${LOG_LINES:-100}"
 
 log() {
@@ -90,10 +94,12 @@ Options:
   --trust-proxy-headers true|false Percaya header Cloudflare/proxy, default true
   --network-name NAME         Docker network untuk app dan PostgreSQL
   --postgres-container NAME   Nama container PostgreSQL, default sisdmk-postgres
+  --postgres-image IMAGE      Image PostgreSQL jika --create-postgres-container aktif
   --postgres-admin-user NAME  User admin PostgreSQL untuk membuat database
   --postgres-database NAME    Nama database aplikasi, default si_data
   --postgres-user NAME        User database aplikasi, default sisdmk_admin
   --postgres-password VALUE   Password user database aplikasi
+  --create-postgres-container Buat container PostgreSQL khusus jika belum ada
   --skip-db-create            Jangan buat database PostgreSQL otomatis
   --restore-dump PATH         Restore dump .sql/.tgz yang sudah ada di server
   --restore-user NAME         User PostgreSQL untuk restore dump
@@ -103,6 +109,8 @@ Options:
   --no-pull                   Jangan pull base image saat build, default aktif untuk STB
   --skip-build                Pull source dan restart tanpa build ulang
   --skip-health-check         Lewati validasi HTTP setelah container start
+  --preflight-only            Validasi source/env/database/compose tanpa build/start app
+  --prune-docker-cache        Bersihkan build cache dan dangling image sebelum build
   -h, --help                  Tampilkan bantuan
 
 Contoh:
@@ -209,6 +217,11 @@ while [ $# -gt 0 ]; do
       POSTGRES_HOSTS="$POSTGRES_CONTAINER,host.docker.internal,172.17.0.1,postgres,db,127.0.0.1"
       shift 2
       ;;
+    --postgres-image)
+      need_value "$@"
+      POSTGRES_IMAGE="$2"
+      shift 2
+      ;;
     --postgres-admin-user)
       need_value "$@"
       POSTGRES_ADMIN_USER="$2"
@@ -229,6 +242,10 @@ while [ $# -gt 0 ]; do
       need_value "$@"
       POSTGRES_PASSWORD="$2"
       shift 2
+      ;;
+    --create-postgres-container)
+      CREATE_POSTGRES_CONTAINER="1"
+      shift
       ;;
     --skip-db-create)
       ENSURE_DATABASE="0"
@@ -266,6 +283,14 @@ while [ $# -gt 0 ]; do
       ;;
     --skip-health-check)
       SKIP_HEALTH_CHECK="1"
+      shift
+      ;;
+    --preflight-only)
+      PREFLIGHT_ONLY="1"
+      shift
+      ;;
+    --prune-docker-cache)
+      PRUNE_DOCKER_CACHE="1"
       shift
       ;;
     -h|--help)
@@ -321,6 +346,91 @@ docker_compose() {
   else
     die "Docker Compose tidak ditemukan."
   fi
+}
+
+list_postgres_containers() {
+  docker ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}' \
+    | awk 'BEGIN { found = 0 } tolower($0) ~ /postgres|pgvector/ { print "  " $0; found = 1 } END { if (found == 0) print "  (tidak ada container PostgreSQL terdeteksi)" }'
+}
+
+require_postgres_container() {
+  if ! docker ps -a --format '{{.Names}}' | grep -qx "$POSTGRES_CONTAINER"; then
+    log "Container PostgreSQL '$POSTGRES_CONTAINER' tidak ditemukan."
+    log "Container PostgreSQL yang terdeteksi:"
+    list_postgres_containers
+    die "Set --postgres-container sesuai nama container yang benar, atau buat container PostgreSQL khusus SISDMK."
+  fi
+
+  if ! docker ps --format '{{.Names}}' | grep -qx "$POSTGRES_CONTAINER"; then
+    die "Container PostgreSQL '$POSTGRES_CONTAINER' ada tapi tidak running. Start dulu container database di CasaOS/Docker."
+  fi
+}
+
+create_postgres_container_if_requested() {
+  if docker ps -a --format '{{.Names}}' | grep -qx "$POSTGRES_CONTAINER"; then
+    return 0
+  fi
+
+  [ "$CREATE_POSTGRES_CONTAINER" = "1" ] || return 0
+
+  if [ -z "$POSTGRES_PASSWORD" ]; then
+    POSTGRES_PASSWORD="$(generate_secret)"
+    log "Password PostgreSQL dibuat otomatis dan akan disimpan di .env.casaos."
+  fi
+
+  mkdir -p "$POSTGRES_DATA_DIR"
+  docker network inspect "$NETWORK_NAME" >/dev/null 2>&1 || docker network create "$NETWORK_NAME" >/dev/null
+
+  log "Membuat container PostgreSQL khusus: $POSTGRES_CONTAINER"
+  docker run -d \
+    --name "$POSTGRES_CONTAINER" \
+    --restart unless-stopped \
+    --network "$NETWORK_NAME" \
+    -e POSTGRES_DB="$POSTGRES_DATABASE" \
+    -e POSTGRES_USER="$POSTGRES_USER" \
+    -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+    -v "$POSTGRES_DATA_DIR:/var/lib/postgresql/data" \
+    "$POSTGRES_IMAGE" >/dev/null
+
+  tries=1
+  while [ "$tries" -le 30 ]; do
+    if docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$POSTGRES_CONTAINER" pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DATABASE" >/dev/null 2>&1; then
+      log "Container PostgreSQL '$POSTGRES_CONTAINER' siap."
+      return 0
+    fi
+
+    log "Menunggu PostgreSQL siap ($tries/30)..."
+    tries=$((tries + 1))
+    sleep 2
+  done
+
+  docker logs --tail "$LOG_LINES" "$POSTGRES_CONTAINER" || true
+  die "Container PostgreSQL '$POSTGRES_CONTAINER' belum siap."
+}
+
+prune_docker_cache() {
+  [ "$PRUNE_DOCKER_CACHE" = "1" ] || return 0
+
+  log "Membersihkan Docker build cache dan dangling image..."
+  docker builder prune -af
+  docker image prune -f
+}
+
+remove_stale_app_container() {
+  if docker ps -a --format '{{.Names}}' | grep -qx "sisdmk2-app"; then
+    log "Menghapus container app lama agar tidak bentrok nama: sisdmk2-app"
+    docker rm -f sisdmk2-app >/dev/null 2>&1 || true
+  fi
+}
+
+validate_compose_config() {
+  cd "$SOURCE_DIR"
+  log "Validasi Docker Compose config..."
+  if docker_compose --env-file .env.casaos -f docker-compose.casaos.yml config --quiet >/dev/null 2>&1; then
+    return 0
+  fi
+
+  docker_compose --env-file .env.casaos -f docker-compose.casaos.yml config >/dev/null
 }
 
 container_env_value() {
@@ -508,7 +618,7 @@ connect_app_networks() {
 postgres_can_connect() {
   candidate_user="$1"
   candidate_db="$2"
-  docker exec "$POSTGRES_CONTAINER" psql -U "$candidate_user" -d "$candidate_db" -tAc "SELECT 1" >/dev/null 2>&1
+  docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$POSTGRES_CONTAINER" psql -U "$candidate_user" -d "$candidate_db" -tAc "SELECT 1" >/dev/null 2>&1
 }
 
 pick_admin_user() {
@@ -524,11 +634,13 @@ pick_admin_user() {
 }
 
 ensure_postgres_database() {
-  [ "$ENSURE_DATABASE" = "1" ] || return 0
+  if [ "$ENSURE_DATABASE" != "1" ]; then
+    if postgres_can_connect "$POSTGRES_USER" "$POSTGRES_DATABASE"; then
+      log "Database PostgreSQL '$POSTGRES_DATABASE' sudah bisa diakses oleh user '$POSTGRES_USER'."
+      return 0
+    fi
 
-  if ! docker ps -a --format '{{.Names}}' | grep -qx "$POSTGRES_CONTAINER"; then
-    log "Peringatan: database tidak dibuat karena container PostgreSQL '$POSTGRES_CONTAINER' tidak ditemukan."
-    return 0
+    die "--skip-db-create aktif, tetapi user '$POSTGRES_USER' belum bisa akses database '$POSTGRES_DATABASE'. Periksa --postgres-user, --postgres-database, dan password."
   fi
 
   if postgres_can_connect "$POSTGRES_USER" "$POSTGRES_DATABASE"; then
@@ -546,10 +658,15 @@ ensure_postgres_database() {
     admin_db="$POSTGRES_DATABASE"
   fi
 
+  admin_privileges="$(docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" "$POSTGRES_CONTAINER" psql -U "$admin_user" -d "$admin_db" -tAc "SELECT CASE WHEN rolsuper OR (rolcreaterole AND rolcreatedb) THEN 'yes' ELSE 'no' END FROM pg_roles WHERE rolname = current_user" 2>/dev/null | tr -d '[:space:]' || true)"
+  if [ "$admin_privileges" != "yes" ]; then
+    die "User PostgreSQL '$admin_user' tidak punya hak CREATEROLE/CREATEDB. Pakai admin yang benar, buat DB/user manual lalu gunakan --skip-db-create, atau gunakan container PostgreSQL khusus SISDMK."
+  fi
+
   sql_password="$(printf '%s' "$POSTGRES_PASSWORD" | sed "s/'/''/g")"
 
   log "Memastikan database PostgreSQL '$POSTGRES_DATABASE' dan user '$POSTGRES_USER' tersedia..."
-  docker exec -i "$POSTGRES_CONTAINER" psql -v ON_ERROR_STOP=1 -U "$admin_user" -d "$admin_db" <<SQL
+  docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" -i "$POSTGRES_CONTAINER" psql -v ON_ERROR_STOP=1 -U "$admin_user" -d "$admin_db" <<SQL
 DO \$\$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$POSTGRES_USER') THEN
@@ -608,7 +725,7 @@ restore_dump() {
 
   log "Restore dump ke database '$POSTGRES_DATABASE' dari $sql_file"
   docker cp "$sql_file" "$POSTGRES_CONTAINER:/tmp/sisdmk2_restore.sql"
-  docker exec -i "$POSTGRES_CONTAINER" psql -U "$restore_user" -d "$POSTGRES_DATABASE" -v ON_ERROR_STOP=1 -f /tmp/sisdmk2_restore.sql
+  docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" -i "$POSTGRES_CONTAINER" psql -U "$restore_user" -d "$POSTGRES_DATABASE" -v ON_ERROR_STOP=1 -f /tmp/sisdmk2_restore.sql
   docker exec "$POSTGRES_CONTAINER" rm -f /tmp/sisdmk2_restore.sql >/dev/null 2>&1 || true
   rm -rf "$tmp_dir"
 }
@@ -646,6 +763,8 @@ build_and_start_app() {
     log "Build image Docker aplikasi..."
     docker_compose --env-file .env.casaos -f docker-compose.casaos.yml build app
   fi
+
+  remove_stale_app_container
 
   log "Start/recreate container aplikasi..."
   docker_compose --env-file .env.casaos -f docker-compose.casaos.yml up -d --force-recreate app
@@ -689,6 +808,8 @@ show_summary() {
 install_deps
 require_command git
 require_command docker
+create_postgres_container_if_requested
+require_postgres_container
 
 sync_source
 cleanup_stale_source_artifacts
@@ -700,7 +821,14 @@ cp "$APP_DIR/.env.casaos" "$SOURCE_DIR/.env"
 connect_app_networks
 ensure_postgres_database
 restore_dump
+validate_compose_config
 
+if [ "$PREFLIGHT_ONLY" = "1" ]; then
+  log "Preflight berhasil. Build/start app dilewati karena --preflight-only aktif."
+  exit 0
+fi
+
+prune_docker_cache
 build_and_start_app
 check_app
 wait_for_http_health

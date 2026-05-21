@@ -6,9 +6,11 @@ Use this before declaring a deployment healthy.
 
 - Docker data root is on external storage.
 - `sisdmk2-app` is running.
-- `sisdmk-postgres` is running.
+- PostgreSQL container from deployment inventory is running.
+- If SISDMK owns its database, PostgreSQL container is dedicated or clearly documented.
 - `sisdmk-n8n` is running.
 - Containers are connected to `sisdmk2-network`.
+- `docker system df` has been checked before repeat deploys on low-storage STB.
 
 ## Environment
 
@@ -17,9 +19,9 @@ Use this before declaring a deployment healthy.
 - `COOKIE_SECURE=true`
 - `ALLOW_INSECURE_LOCAL_HTTP=false`
 - `TRUST_PROXY_HEADERS=true`
-- `POSTGRES_HOST=sisdmk-postgres`
-- `POSTGRES_USER=sisdmk_admin`
-- `POSTGRES_DATABASE=si_data`
+- `POSTGRES_HOST` matches the real PostgreSQL container name from `docker ps`.
+- `POSTGRES_USER` can log in to `POSTGRES_DATABASE`.
+- `POSTGRES_DATABASE` is the intended SISDMK database, not an unrelated app database.
 - `AI_ENABLE_N8N=true`
 
 ## App
