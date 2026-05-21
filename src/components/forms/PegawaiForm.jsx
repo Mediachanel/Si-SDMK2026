@@ -755,37 +755,13 @@ const overallSchema = baseSchema.shape({
     tanggal_lahir: dateField("Tanggal lahir keluarga"),
     no_tlp: yup.string().trim().matches(/^\d*$/, { message: "No. telepon keluarga hanya boleh angka.", excludeEmptyString: true }).nullable().transform((value) => value || "")
   })),
-  riwayat_pendidikan: yup.array().of(yup.object({
-    tanggal_ijazah: dateField("Tanggal ijazah"),
-    tahun_lulus: yup.string().trim().matches(/^\d{0,4}$/, { message: "Tahun lulus harus 4 digit.", excludeEmptyString: true }).nullable().transform((value) => value || "")
-  })),
-  riwayat_jabatan: yup.array().of(yup.object({
-    nama_jabatan_menpan: yup.string().nullable(),
-    pangkat_golongan: yup.string().nullable(),
-    tmt_jabatan: dateField("TMT jabatan"),
-    tanggal_sk: dateField("Tanggal SK")
-  })),
-  riwayat_gaji_pokok: yup.array().of(yup.object({
-    pangkat_golongan: yup.string().nullable(),
-    tmt_gaji: dateField("TMT gaji"),
-    tanggal_sk: dateField("Tanggal SK")
-  })),
-  riwayat_pangkat: yup.array().of(yup.object({
-    pangkat_golongan: yup.string().nullable(),
-    tmt_pangkat: dateField("TMT pangkat"),
-    tanggal_sk: dateField("Tanggal SK")
-  })),
-  riwayat_penghargaan: yup.array().of(yup.object({
-    tanggal_sk: dateField("Tanggal SK")
-  })),
-  riwayat_skp: yup.array().of(yup.object({
-    tahun: yup.string().trim().matches(/^\d{0,4}$/, { message: "Tahun harus 4 digit.", excludeEmptyString: true }).nullable().transform((value) => value || "")
-  })),
-  riwayat_hukuman_disiplin: yup.array().of(yup.object({
-    tanggal_mulai: dateField("Tanggal mulai"),
-    tanggal_akhir: dateField("Tanggal akhir"),
-    tanggal_sk: dateField("Tanggal SK")
-  })),
+  riwayat_pendidikan: yup.array().of(yup.object({})),
+  riwayat_jabatan: yup.array().of(yup.object({})),
+  riwayat_gaji_pokok: yup.array().of(yup.object({})),
+  riwayat_pangkat: yup.array().of(yup.object({})),
+  riwayat_penghargaan: yup.array().of(yup.object({})),
+  riwayat_skp: yup.array().of(yup.object({})),
+  riwayat_hukuman_disiplin: yup.array().of(yup.object({})),
   riwayat_prestasi_pendidikan: yup.array().of(yup.object({})),
   riwayat_narasumber: yup.array().of(yup.object({})),
   riwayat_kegiatan_strategis: yup.array().of(yup.object({})),
