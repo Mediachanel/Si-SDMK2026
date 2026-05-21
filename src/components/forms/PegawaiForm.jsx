@@ -708,7 +708,7 @@ const baseSchema = yup.object({
   jenis_kelamin: yup.string().required("Jenis kelamin wajib dipilih."),
   tempat_lahir: yup.string().trim().required("Tempat lahir wajib diisi."),
   tanggal_lahir: dateField("Tanggal lahir", true),
-  nik: yup.string().trim().matches(/^\d{16}$/, "NIK harus 16 digit angka.").required("NIK wajib diisi."),
+  nik: yup.string().trim().matches(/^\d{16}$/, { message: "NIK harus 16 digit angka.", excludeEmptyString: true }).nullable().transform((value) => value || ""),
   agama: selectField("Agama", AGAMA_OPTIONS, true),
   nama_ukpd: yup.string().trim().required("UKPD wajib dipilih."),
   jenis_pegawai: yup.string().trim().required("Jenis pegawai wajib dipilih."),
@@ -1485,7 +1485,7 @@ export default function PegawaiForm({ initialData, mode = "create" }) {
                 key={field}
                 name={field}
                 register={register}
-                required={["nama", "jenis_kelamin", "tempat_lahir", "tanggal_lahir", "nik", "agama"].includes(field)}
+                required={["nama", "jenis_kelamin", "tempat_lahir", "tanggal_lahir", "agama"].includes(field)}
                 options={allOptionsFor(field, referenceOptions)}
                 error={getByPath(formState.errors, field)}
                 touched={Boolean(getByPath(formState.touchedFields, field))}
