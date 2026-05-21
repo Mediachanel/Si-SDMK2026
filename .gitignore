@@ -29,6 +29,7 @@ proposal/
 SPBE DATIIN/
 storage/
 tmp/
+generated/
 scripts/__pycache__/
 sql/
 *.sql
