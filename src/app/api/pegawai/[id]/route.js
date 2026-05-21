@@ -175,7 +175,7 @@ export async function PUT(request, { params }) {
     const parsed = pegawaiPayloadSchema.safeParse(sanitizePegawaiPayload(await request.json()));
     if (!parsed.success) return fail("Validasi data pegawai gagal.", 422, parsed.error.flatten());
     const data = normalizePegawaiReferencePayload(parsed.data);
-    const referenceValidation = await validatePegawaiReferenceFields(data);
+    const referenceValidation = await validatePegawaiReferenceFields(data, { validateRiwayat: false });
     if (!referenceValidation.valid) {
       return fail("Validasi referensi pegawai gagal.", 422, referenceValidation.errors);
     }

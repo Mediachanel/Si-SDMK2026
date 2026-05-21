@@ -60,7 +60,7 @@ export async function getPegawaiFormOptions() {
   };
 }
 
-export async function validatePegawaiReferenceFields(payload) {
+export async function validatePegawaiReferenceFields(payload, { validateRiwayat = true } = {}) {
   const options = await getPegawaiFormOptions();
   const errors = {};
 
@@ -87,42 +87,44 @@ export async function validatePegawaiReferenceFields(payload) {
     normalizeUpper
   );
 
-  for (const [index, row] of Array.isArray(payload?.riwayat_pendidikan) ? payload.riwayat_pendidikan.entries() : []) {
-    validateValue(
-      errors,
-      `riwayat_pendidikan.${index}.jenjang_pendidikan`,
-      row?.jenjang_pendidikan,
-      options.pendidikanOptions,
-      "Jenjang pendidikan riwayat harus dipilih dari daftar yang tersedia.",
-      normalizeUpper
-    );
-  }
+  if (validateRiwayat) {
+    for (const [index, row] of Array.isArray(payload?.riwayat_pendidikan) ? payload.riwayat_pendidikan.entries() : []) {
+      validateValue(
+        errors,
+        `riwayat_pendidikan.${index}.jenjang_pendidikan`,
+        row?.jenjang_pendidikan,
+        options.pendidikanOptions,
+        "Jenjang pendidikan riwayat harus dipilih dari daftar yang tersedia.",
+        normalizeUpper
+      );
+    }
 
-  for (const [index, row] of Array.isArray(payload?.riwayat_prestasi_pendidikan) ? payload.riwayat_prestasi_pendidikan.entries() : []) {
-    validateValue(
-      errors,
-      `riwayat_prestasi_pendidikan.${index}.jenjang_pendidikan`,
-      row?.jenjang_pendidikan,
-      options.pendidikanOptions,
-      "Jenjang pendidikan prestasi harus dipilih dari daftar yang tersedia.",
-      normalizeUpper
-    );
-  }
+    for (const [index, row] of Array.isArray(payload?.riwayat_prestasi_pendidikan) ? payload.riwayat_prestasi_pendidikan.entries() : []) {
+      validateValue(
+        errors,
+        `riwayat_prestasi_pendidikan.${index}.jenjang_pendidikan`,
+        row?.jenjang_pendidikan,
+        options.pendidikanOptions,
+        "Jenjang pendidikan prestasi harus dipilih dari daftar yang tersedia.",
+        normalizeUpper
+      );
+    }
 
-  for (const [index, row] of Array.isArray(payload?.riwayat_jabatan) ? payload.riwayat_jabatan.entries() : []) {
-    validateValue(errors, `riwayat_jabatan.${index}.nama_ukpd`, row?.nama_ukpd, options.ukpdOptions, "UKPD riwayat jabatan harus dipilih dari daftar yang tersedia.");
-    validateValue(errors, `riwayat_jabatan.${index}.status_rumpun`, row?.status_rumpun, options.statusRumpunOptions, "Rumpun riwayat jabatan harus dipilih dari daftar yang tersedia.");
-    validateValue(errors, `riwayat_jabatan.${index}.nama_jabatan_menpan`, row?.nama_jabatan_menpan, options.jabatanMenpanOptions, "Jabatan Kepgub 11 riwayat harus dipilih dari daftar jabatan_standar.", normalizeJabatanStandarOption);
-    validateValue(errors, `riwayat_jabatan.${index}.nama_jabatan_orb`, row?.nama_jabatan_orb, options.jabatanOrbOptions, "Jabatan ORB riwayat harus dipilih dari daftar yang tersedia.");
-    validateValue(errors, `riwayat_jabatan.${index}.pangkat_golongan`, row?.pangkat_golongan, options.pangkatGolonganOptions, "Pangkat/golongan riwayat jabatan harus dipilih dari daftar yang tersedia.", normalizePangkatGolonganOption);
-  }
+    for (const [index, row] of Array.isArray(payload?.riwayat_jabatan) ? payload.riwayat_jabatan.entries() : []) {
+      validateValue(errors, `riwayat_jabatan.${index}.nama_ukpd`, row?.nama_ukpd, options.ukpdOptions, "UKPD riwayat jabatan harus dipilih dari daftar yang tersedia.");
+      validateValue(errors, `riwayat_jabatan.${index}.status_rumpun`, row?.status_rumpun, options.statusRumpunOptions, "Rumpun riwayat jabatan harus dipilih dari daftar yang tersedia.");
+      validateValue(errors, `riwayat_jabatan.${index}.nama_jabatan_menpan`, row?.nama_jabatan_menpan, options.jabatanMenpanOptions, "Jabatan Kepgub 11 riwayat harus dipilih dari daftar jabatan_standar.", normalizeJabatanStandarOption);
+      validateValue(errors, `riwayat_jabatan.${index}.nama_jabatan_orb`, row?.nama_jabatan_orb, options.jabatanOrbOptions, "Jabatan ORB riwayat harus dipilih dari daftar yang tersedia.");
+      validateValue(errors, `riwayat_jabatan.${index}.pangkat_golongan`, row?.pangkat_golongan, options.pangkatGolonganOptions, "Pangkat/golongan riwayat jabatan harus dipilih dari daftar yang tersedia.", normalizePangkatGolonganOption);
+    }
 
-  for (const [index, row] of Array.isArray(payload?.riwayat_pangkat) ? payload.riwayat_pangkat.entries() : []) {
-    validateValue(errors, `riwayat_pangkat.${index}.pangkat_golongan`, row?.pangkat_golongan, options.pangkatGolonganOptions, "Pangkat/golongan riwayat pangkat harus dipilih dari daftar yang tersedia.", normalizePangkatGolonganOption);
-  }
+    for (const [index, row] of Array.isArray(payload?.riwayat_pangkat) ? payload.riwayat_pangkat.entries() : []) {
+      validateValue(errors, `riwayat_pangkat.${index}.pangkat_golongan`, row?.pangkat_golongan, options.pangkatGolonganOptions, "Pangkat/golongan riwayat pangkat harus dipilih dari daftar yang tersedia.", normalizePangkatGolonganOption);
+    }
 
-  for (const [index, row] of Array.isArray(payload?.riwayat_gaji_pokok) ? payload.riwayat_gaji_pokok.entries() : []) {
-    validateValue(errors, `riwayat_gaji_pokok.${index}.pangkat_golongan`, row?.pangkat_golongan, options.pangkatGolonganOptions, "Pangkat/golongan riwayat gaji harus dipilih dari daftar yang tersedia.", normalizePangkatGolonganOption);
+    for (const [index, row] of Array.isArray(payload?.riwayat_gaji_pokok) ? payload.riwayat_gaji_pokok.entries() : []) {
+      validateValue(errors, `riwayat_gaji_pokok.${index}.pangkat_golongan`, row?.pangkat_golongan, options.pangkatGolonganOptions, "Pangkat/golongan riwayat gaji harus dipilih dari daftar yang tersedia.", normalizePangkatGolonganOption);
+    }
   }
 
   return {
