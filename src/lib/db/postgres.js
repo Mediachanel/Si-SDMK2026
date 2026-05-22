@@ -278,7 +278,7 @@ export function createPool(config = {}) {
     user: config.user || process.env.POSTGRES_USER || process.env.PGUSER || "postgres",
     password: config.password !== undefined ? config.password : process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD || "",
     database: config.database || process.env.POSTGRES_DATABASE || process.env.PGDATABASE || "si_data",
-    connectionTimeoutMillis: numberOption(process.env.POSTGRES_CONNECT_TIMEOUT_MS, 1500, { min: 500, max: 30000 }),
+    connectionTimeoutMillis: numberOption(process.env.POSTGRES_CONNECT_TIMEOUT_MS, 5000, { min: 500, max: 30000 }),
     idleTimeoutMillis: numberOption(process.env.POSTGRES_IDLE_TIMEOUT_MS, 30000, { min: 1000, max: 300000 }),
     max: numberOption(process.env.POSTGRES_POOL_MAX, 10, { min: 1, max: 50 }),
     statement_timeout: config.statementTimeoutMillis || undefined,
