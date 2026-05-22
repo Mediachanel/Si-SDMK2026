@@ -1090,7 +1090,8 @@ function DashboardMenuCharts({
                 datasets={chart.datasets}
                 horizontal={Boolean(chart.horizontal)}
                 stacked={Boolean(chart.stacked)}
-                heightClass={chart.heightClass || "h-96"}
+                heightClass={chart.compactHeightClass || "h-[300px]"}
+                compact
               />
             </div>
           ))}

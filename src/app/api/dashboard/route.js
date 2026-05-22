@@ -908,9 +908,12 @@ function buildAnalyticsUkpdOptions(data) {
         value: namaUkpd,
         label: namaUkpd,
         wilayah: item.wilayah || "",
-        jenis_ukpd: item.jenis_ukpd || ""
+        jenis_ukpd: item.jenis_ukpd || "",
+        total: 0
       });
     }
+    const option = byName.get(namaUkpd);
+    option.total += 1;
   }
   return [...byName.values()].sort((a, b) => a.label.localeCompare(b.label, "id"));
 }

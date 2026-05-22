@@ -227,7 +227,8 @@ export default function DashboardChartCard({
   datasets,
   horizontal = false,
   stacked = false,
-  heightClass = "h-96"
+  heightClass = "h-96",
+  compact = false
 }) {
   const chartRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -327,14 +328,14 @@ export default function DashboardChartCard({
   };
 
   return (
-    <article className="surface flex h-full min-h-[540px] min-w-0 flex-col overflow-hidden p-4">
-      <div className="flex min-h-10 items-start justify-between gap-3">
+    <article className={`surface flex h-full min-w-0 flex-col overflow-hidden ${compact ? "min-h-[430px] p-3" : "min-h-[540px] p-4"}`}>
+      <div className={`flex items-start justify-between gap-3 ${compact ? "min-h-9" : "min-h-10"}`}>
         <h2 className="min-w-0 font-display text-base font-bold leading-snug text-dinkes-900">{title}</h2>
         <button className="hidden rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-dinkes-600 hover:bg-dinkes-50 hover:text-dinkes-800 sm:inline-flex" onClick={() => downloadChart(chartRef, title)} type="button">
           Unduh PNG
         </button>
       </div>
-      <div className={`mt-3 min-w-0 shrink-0 ${heightClass}`} role="img" aria-label={`Grafik ${title}`}>
+      <div className={`${compact ? "mt-2" : "mt-3"} min-w-0 shrink-0 ${heightClass}`} role="img" aria-label={`Grafik ${title}`}>
         {type === "doughnut" ? (
           <Doughnut
             ref={chartRef}
@@ -402,7 +403,7 @@ export default function DashboardChartCard({
         )}
       </div>
       {summaryRows.length ? (
-        <div className="mt-3 flex min-h-16 flex-wrap items-start justify-center gap-x-3 gap-y-1.5 border-t border-slate-100 pt-3 md:gap-x-4 md:gap-y-2">
+        <div className={`${compact ? "mt-2 max-h-20 overflow-y-auto pt-2" : "mt-3 min-h-16 pt-3"} flex flex-wrap items-start justify-center gap-x-3 gap-y-1.5 border-t border-slate-100 md:gap-x-4 md:gap-y-2`}>
           {summaryRows.map((row) => (
             <div key={row.label} className="inline-flex min-w-0 items-center gap-1.5 text-[11px] text-slate-600">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
