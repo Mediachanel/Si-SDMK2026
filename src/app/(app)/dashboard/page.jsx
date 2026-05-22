@@ -848,7 +848,7 @@ function DashboardAnalyticsPanel({ analytics, activeUkpd = "all", onUkpdChange, 
 
   return (
     <section className="mt-6">
-      <nav className="flex gap-2 overflow-x-auto pb-3" aria-label="Menu analitik dashboard">
+      <nav className="flex flex-wrap gap-2 pb-3" aria-label="Menu analitik dashboard">
         {analyticsTabs.map((tab) => (
           <button
             key={tab.id}
@@ -964,14 +964,14 @@ function DashboardMenuCharts({
 
   return (
     <section className="surface mt-4 overflow-hidden">
-      <nav className="flex gap-1 overflow-x-auto bg-dinkes-800 px-3 py-2" aria-label="Menu dashboard">
+      <nav className="flex flex-wrap gap-1 bg-dinkes-800 px-3 py-2" aria-label="Menu dashboard">
         {menuItems.map((item) => {
           const Icon = dashboardMenuIcons[item.id] || BarChart3;
           const selected = item.id === activeId;
           return (
             <button
               key={item.id}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold text-white transition focus-ring ${selected ? "border-govgold-300 bg-dinkes-600" : "border-transparent hover:bg-white/10"}`}
+              className={`inline-flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold text-white transition focus-ring ${selected ? "border-govgold-300 bg-dinkes-600" : "border-transparent hover:bg-white/10"}`}
               onClick={() => onMenuChange(item.id)}
               type="button"
             >
@@ -1026,9 +1026,9 @@ function DashboardMenuCharts({
             ) : null}
           </div>
         </header>
-        <section className="mt-4 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden xl:grid xl:auto-rows-fr xl:grid-cols-2 xl:overflow-visible xl:pb-0">
+        <section className="mt-4 grid items-stretch gap-4 lg:grid-cols-2">
           {(activeView.charts || []).map((chart) => (
-            <div key={chart.id || chart.title} className={`w-full min-w-full snap-start ${chart.fullWidth ? "xl:col-span-2" : ""}`}>
+            <div key={chart.id || chart.title} className={`min-w-0 ${chart.fullWidth ? "lg:col-span-2" : ""}`}>
               <DashboardChartCard
                 title={chart.title}
                 type={chart.type || "bar"}
