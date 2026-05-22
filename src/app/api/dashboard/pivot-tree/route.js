@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { getScopedDashboardData } from "@/lib/dashboardData";
 import { ok } from "@/lib/helpers/response";
 import { normalizeJenisPegawai } from "@/lib/helpers/pegawaiStatus";
+import { getPegawaiWilayah } from "@/lib/auth/access";
 
 const MASA_KERJA_ORDER = [
   ...Array.from({ length: 10 }, (_, index) => `${index * 2}-${index * 2 + 2} tahun`),
@@ -17,6 +18,15 @@ function filterByUkpd(data, ukpdFilter) {
   const text = String(ukpdFilter || "all").trim();
   if (!text || text === "all") return data;
   return data.filter((item) => (item.nama_ukpd || "Tidak Diketahui") === text);
+}
+
+function filterByWilayah(data, wilayahFilter, ukpdList = []) {
+  const text = String(wilayahFilter || "all").trim();
+  if (!text || text === "all") return data;
+  return data.filter((item) => {
+    const wilayah = item.wilayah || getPegawaiWilayah(item, ukpdList);
+    return (wilayah || "Tidak Diketahui") === text;
+  });
 }
 
 function mapEmployee(item) {
@@ -297,6 +307,7 @@ export async function GET(request) {
           ? "masa-kerja"
         : "rumpun";
   const q = (searchParams.get("q") || "").toLowerCase();
+  const wilayah = searchParams.get("wilayah") || "all";
   const ukpd = searchParams.get("ukpd") || "all";
   const group1 = searchParams.get("group1") || "";
   const group2 = searchParams.get("group2") || "";
@@ -305,7 +316,8 @@ export async function GET(request) {
   const pageSize = Math.min(50, Math.max(10, Number.parseInt(searchParams.get("pageSize") || "20", 10)));
 
   const { data: scoped, ukpdList } = await getScopedDashboardData(user);
-  const ukpdScoped = filterByUkpd(scoped, ukpd);
+  const wilayahScoped = filterByWilayah(scoped, wilayah, ukpdList);
+  const ukpdScoped = filterByUkpd(wilayahScoped, ukpd);
   const filtered = q
     ? ukpdScoped.filter((item) =>
       [

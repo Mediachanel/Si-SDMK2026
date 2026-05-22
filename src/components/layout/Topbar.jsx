@@ -168,7 +168,7 @@ export default function Topbar({ user, onOpenMenu, collapsed, onToggleSidebar })
             <span className="text-slate-300">/</span>
             <span className="truncate text-slate-600">{breadcrumbFromPath(pathname)}</span>
           </nav>
-          <div className="relative ml-auto hidden w-full max-w-xl md:block" ref={searchRef}>
+          <div className="relative ml-auto hidden min-w-0 w-full max-w-xl md:block" ref={searchRef}>
             <label className="sr-only" htmlFor="topbar-search-input">Pencarian cepat</label>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <input
@@ -197,7 +197,7 @@ export default function Topbar({ user, onOpenMenu, collapsed, onToggleSidebar })
               </button>
             ) : null}
             {open && trimmedQuery.length >= 2 ? (
-              <div id={resultListId} className="absolute left-0 top-full mt-2 w-full min-w-[28rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-soft" role="listbox">
+              <div id={resultListId} className="absolute left-0 top-full mt-2 w-full max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-soft" role="listbox">
                 {errorMessage ? (
                   <div className="px-4 py-3 text-sm text-rose-700">{errorMessage}</div>
                 ) : results.length ? (
@@ -299,7 +299,7 @@ export default function Topbar({ user, onOpenMenu, collapsed, onToggleSidebar })
             <Settings className="h-5 w-5" />
           </Link>
           <span className="hidden h-8 w-px bg-[#e5e7eb] md:block" aria-hidden="true" />
-          <div className="hidden min-w-0 text-right lg:block">
+          <div className="hidden min-w-0 max-w-40 text-right lg:block xl:max-w-56">
             <p className="truncate text-sm font-bold leading-tight text-slate-900">{user?.username || "Admin Dinas"}</p>
             <p className="truncate text-xs font-medium uppercase text-slate-500">{user?.role || "Dinas Kesehatan"}</p>
           </div>

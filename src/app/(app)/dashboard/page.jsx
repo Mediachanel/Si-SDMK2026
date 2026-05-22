@@ -130,7 +130,7 @@ function EmployeePivotCountCells({ employee }) {
   );
 }
 
-function PivotDrillPanel({ mode, query, ukpdFilter = "all" }) {
+function PivotDrillPanel({ mode, query, wilayahFilter = "all", ukpdFilter = "all" }) {
   const [loadingTree, setLoadingTree] = useState(false);
   const [treeError, setTreeError] = useState("");
   const [tree, setTree] = useState([]);
@@ -153,6 +153,7 @@ function PivotDrillPanel({ mode, query, ukpdFilter = "all" }) {
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ mode });
       if (query) params.set("q", query);
+      if (wilayahFilter && wilayahFilter !== "all") params.set("wilayah", wilayahFilter);
       if (ukpdFilter && ukpdFilter !== "all") params.set("ukpd", ukpdFilter);
       setLoadingTree(true);
       setTreeError("");
@@ -175,7 +176,7 @@ function PivotDrillPanel({ mode, query, ukpdFilter = "all" }) {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [mode, query, ukpdFilter]);
+  }, [mode, query, wilayahFilter, ukpdFilter]);
 
   function toggleLevel1(label) {
     setOpen1((current) => ({ ...current, [label]: !current[label] }));
@@ -186,6 +187,7 @@ function PivotDrillPanel({ mode, query, ukpdFilter = "all" }) {
     setLoadingNode(nodeKey);
     const params = new URLSearchParams({ mode, group1, group2, page: String(page), pageSize: String(pageSize) });
     if (query) params.set("q", query);
+    if (wilayahFilter && wilayahFilter !== "all") params.set("wilayah", wilayahFilter);
     if (ukpdFilter && ukpdFilter !== "all") params.set("ukpd", ukpdFilter);
     try {
       const response = await fetch(`/api/dashboard/pivot-tree?${params.toString()}`);
@@ -396,7 +398,7 @@ function PivotDrillPanel({ mode, query, ukpdFilter = "all" }) {
   );
 }
 
-function UkpdDrillPanel({ query, ukpdFilter = "all" }) {
+function UkpdDrillPanel({ query, wilayahFilter = "all", ukpdFilter = "all" }) {
   const [loadingTree, setLoadingTree] = useState(false);
   const [treeError, setTreeError] = useState("");
   const [tree, setTree] = useState([]);
@@ -427,6 +429,7 @@ function UkpdDrillPanel({ query, ukpdFilter = "all" }) {
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ mode: "ukpd" });
       if (query) params.set("q", query);
+      if (wilayahFilter && wilayahFilter !== "all") params.set("wilayah", wilayahFilter);
       if (ukpdFilter && ukpdFilter !== "all") params.set("ukpd", ukpdFilter);
       setLoadingTree(true);
       setTreeError("");
@@ -448,13 +451,14 @@ function UkpdDrillPanel({ query, ukpdFilter = "all" }) {
         .finally(() => setLoadingTree(false));
     }, 350);
     return () => clearTimeout(timer);
-  }, [query, ukpdFilter]);
+  }, [query, wilayahFilter, ukpdFilter]);
 
   async function loadEmployees(group1, group2, group3, page = 1) {
     const nodeKey = `${group1}::${group2}::${group3}`;
     setLoadingNode(nodeKey);
     const params = new URLSearchParams({ mode: "ukpd", group1, group2, group3, page: String(page), pageSize: String(pageSize) });
     if (query) params.set("q", query);
+    if (wilayahFilter && wilayahFilter !== "all") params.set("wilayah", wilayahFilter);
     if (ukpdFilter && ukpdFilter !== "all") params.set("ukpd", ukpdFilter);
     try {
       const response = await fetch(`/api/dashboard/pivot-tree?${params.toString()}`);
@@ -706,7 +710,14 @@ function UkpdDrillPanel({ query, ukpdFilter = "all" }) {
   );
 }
 
-function DashboardAnalyticsPanel({ analytics, activeUkpd = "all", onUkpdChange, ukpdLoading = false }) {
+function DashboardAnalyticsPanel({
+  analytics,
+  activeWilayah = "all",
+  activeUkpd = "all",
+  onWilayahChange,
+  onUkpdChange,
+  filterLoading = false
+}) {
   const [activeTab, setActiveTab] = useState("ukpd");
   const [query, setQuery] = useState("");
   const normalizedQuery = query.toLowerCase();
@@ -715,6 +726,8 @@ function DashboardAnalyticsPanel({ analytics, activeUkpd = "all", onUkpdChange, 
   const rumpunRows = analytics?.rumpunByJenisPegawai || [];
   const jabatanRows = analytics?.jabatanMenpanByJenisPegawai || [];
   const ukpdRows = analytics?.ukpdSummary || [];
+  const wilayahFilterOptions = analytics?.wilayahFilterOptions || [];
+  const canFilterWilayah = Boolean(analytics?.canFilterWilayah && wilayahFilterOptions.length > 1);
   const ukpdFilterOptions = analytics?.ukpdFilterOptions || [];
   const canFilterUkpd = Boolean(analytics?.canFilterUkpd && ukpdFilterOptions.length);
 
@@ -866,15 +879,30 @@ function DashboardAnalyticsPanel({ analytics, activeUkpd = "all", onUkpdChange, 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-display text-base font-bold text-dinkes-900">{titleByTab[activeTab]}</h2>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex w-full flex-col gap-3 sm:grid sm:grid-cols-2 lg:w-auto lg:grid-cols-[minmax(180px,220px)_minmax(220px,320px)_auto_minmax(220px,320px)]">
+            {canFilterWilayah ? (
+              <label className="min-w-0">
+                <span className="sr-only">Filter wilayah analitik</span>
+                <select
+                  className="input py-2"
+                  value={activeWilayah}
+                  onChange={(event) => onWilayahChange?.(event.target.value)}
+                  disabled={filterLoading}
+                >
+                  {wilayahFilterOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             {canFilterUkpd ? (
-              <label className="min-w-64">
+              <label className="min-w-0">
                 <span className="sr-only">Filter UKPD analitik</span>
                 <select
                   className="input py-2"
                   value={activeUkpd}
                   onChange={(event) => onUkpdChange?.(event.target.value)}
-                  disabled={ukpdLoading}
+                  disabled={filterLoading}
                 >
                   <option value="all">Semua UKPD</option>
                   {ukpdFilterOptions.map((option) => (
@@ -891,7 +919,7 @@ function DashboardAnalyticsPanel({ analytics, activeUkpd = "all", onUkpdChange, 
               <Download className="h-4 w-4" />
               Export CSV
             </button>
-            <label className="relative min-w-64">
+            <label className="relative min-w-0">
               <span className="sr-only">Cari analitik</span>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input className="input py-2 pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholderByTab[activeTab]} />
@@ -902,16 +930,16 @@ function DashboardAnalyticsPanel({ analytics, activeUkpd = "all", onUkpdChange, 
       <div>
         {activeTab === "ukpd" ? (
           <>
-            <UkpdDrillPanel query={query} ukpdFilter={activeUkpd} />
+            <UkpdDrillPanel query={query} wilayahFilter={activeWilayah} ukpdFilter={activeUkpd} />
           </>
         ) : activeTab === "pendidikan" ? (
-          <PivotDrillPanel mode="pendidikan" query={query} ukpdFilter={activeUkpd} />
+          <PivotDrillPanel mode="pendidikan" query={query} wilayahFilter={activeWilayah} ukpdFilter={activeUkpd} />
         ) : activeTab === "rumpun" ? (
-          <PivotDrillPanel mode="rumpun" query={query} ukpdFilter={activeUkpd} />
+          <PivotDrillPanel mode="rumpun" query={query} wilayahFilter={activeWilayah} ukpdFilter={activeUkpd} />
         ) : activeTab === "jabatan" ? (
-          <PivotDrillPanel mode="jabatan" query={query} ukpdFilter={activeUkpd} />
+          <PivotDrillPanel mode="jabatan" query={query} wilayahFilter={activeWilayah} ukpdFilter={activeUkpd} />
         ) : activeTab === "masa-kerja" ? (
-          <PivotDrillPanel mode="masa-kerja" query={query} ukpdFilter={activeUkpd} />
+          <PivotDrillPanel mode="masa-kerja" query={query} wilayahFilter={activeWilayah} ukpdFilter={activeUkpd} />
         ) : null}
       </div>
       <footer className="mt-3 text-sm text-slate-500">
@@ -1060,6 +1088,7 @@ export default function DashboardPage() {
   const [dashboardStatusLoading, setDashboardStatusLoading] = useState(false);
   const [dashboardStatusError, setDashboardStatusError] = useState("");
   const [analytics, setAnalytics] = useState(null);
+  const [analyticsWilayah, setAnalyticsWilayah] = useState("all");
   const [analyticsUkpd, setAnalyticsUkpd] = useState("all");
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState("");
@@ -1073,6 +1102,7 @@ export default function DashboardPage() {
     setDashboardStatusError("");
     setDashboardStatusLoading(false);
     setAnalytics(null);
+    setAnalyticsWilayah("all");
     setAnalyticsUkpd("all");
     setAnalyticsError("");
     setAnalyticsLoading(false);
@@ -1125,13 +1155,14 @@ export default function DashboardPage() {
   ];
   const totalPegawai = Number(data.summary.total || 0);
 
-  async function loadAnalytics(nextUkpd = analyticsUkpd, { force = false } = {}) {
+  async function loadAnalytics(nextWilayah = analyticsWilayah, nextUkpd = analyticsUkpd, { force = false } = {}) {
     if ((!force && analytics) || analyticsLoading) return;
 
     setAnalyticsLoading(true);
     setAnalyticsError("");
     try {
       const params = new URLSearchParams({ detail: "analytics" });
+      if (nextWilayah && nextWilayah !== "all") params.set("wilayah", nextWilayah);
       if (nextUkpd && nextUkpd !== "all") params.set("ukpd", nextUkpd);
       const response = await fetch(`/api/dashboard?${params.toString()}`, { cache: "no-store" });
       const contentType = response.headers.get("content-type") || "";
@@ -1143,6 +1174,7 @@ export default function DashboardPage() {
       if (!payload?.success) throw new Error(payload?.message || "Analitik gagal dimuat.");
       const nextAnalytics = payload?.data?.analytics || null;
       setAnalytics(nextAnalytics);
+      setAnalyticsWilayah(nextAnalytics?.activeWilayah || nextWilayah || "all");
       setAnalyticsUkpd(nextAnalytics?.activeUkpd || nextUkpd || "all");
     } catch (error) {
       setAnalyticsError(error.message || "Analitik gagal dimuat.");
@@ -1151,10 +1183,17 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleAnalyticsWilayahChange(nextWilayah) {
+    if (nextWilayah === analyticsWilayah) return;
+    setAnalyticsWilayah(nextWilayah);
+    setAnalyticsUkpd("all");
+    await loadAnalytics(nextWilayah, "all", { force: true });
+  }
+
   async function handleAnalyticsUkpdChange(nextUkpd) {
     if (nextUkpd === analyticsUkpd) return;
     setAnalyticsUkpd(nextUkpd);
-    await loadAnalytics(nextUkpd, { force: true });
+    await loadAnalytics(analyticsWilayah, nextUkpd, { force: true });
   }
 
   function getDashboardMenuCacheKey(status, wilayah) {
@@ -1257,9 +1296,11 @@ export default function DashboardPage() {
       {analytics ? (
         <DashboardAnalyticsPanel
           analytics={analytics}
+          activeWilayah={analyticsWilayah}
           activeUkpd={analyticsUkpd}
+          onWilayahChange={handleAnalyticsWilayahChange}
           onUkpdChange={handleAnalyticsUkpdChange}
-          ukpdLoading={analyticsLoading}
+          filterLoading={analyticsLoading}
         />
       ) : (
         <section className="surface mt-4 p-4">

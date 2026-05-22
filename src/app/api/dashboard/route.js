@@ -915,6 +915,10 @@ function buildAnalyticsUkpdOptions(data) {
   return [...byName.values()].sort((a, b) => a.label.localeCompare(b.label, "id"));
 }
 
+function buildAnalyticsWilayahOptions(data, ukpdList = []) {
+  return buildDashboardMenuWilayahOptions(data, ukpdList);
+}
+
 function normalizeDashboardUkpdFilter(value, options = []) {
   const text = String(value || "all").trim();
   if (!text || text === "all") return "all";
@@ -1033,15 +1037,24 @@ export async function GET(request) {
     const { data, ukpdList } = await getScopedDashboardData(user);
 
     if (detail === "analytics") {
+      const canFilterWilayah = [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH].includes(user.role);
+      const wilayahFilterOptions = canFilterWilayah ? buildAnalyticsWilayahOptions(data, ukpdList) : [];
+      const activeWilayah = canFilterWilayah ? normalizeDashboardUkpdFilter(wilayahInput, wilayahFilterOptions) : "all";
+      const wilayahData = activeWilayah === "all"
+        ? data
+        : data.filter((item) => getWilayahLabel(item, ukpdList) === activeWilayah);
       const canFilterUkpd = [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH].includes(user.role);
-      const ukpdFilterOptions = canFilterUkpd ? buildAnalyticsUkpdOptions(data) : [];
+      const ukpdFilterOptions = canFilterUkpd ? buildAnalyticsUkpdOptions(wilayahData) : [];
       const activeUkpd = canFilterUkpd ? normalizeDashboardUkpdFilter(ukpdInput, ukpdFilterOptions) : "all";
       const analyticsData = activeUkpd === "all"
-        ? data
-        : data.filter((item) => (item.nama_ukpd || "Tidak Diketahui") === activeUkpd);
+        ? wilayahData
+        : wilayahData.filter((item) => (item.nama_ukpd || "Tidak Diketahui") === activeUkpd);
       const payload = {
         analytics: {
           ...buildDashboardAnalytics(analyticsData, ukpdList),
+          canFilterWilayah,
+          wilayahFilterOptions,
+          activeWilayah,
           canFilterUkpd,
           ukpdFilterOptions,
           activeUkpd

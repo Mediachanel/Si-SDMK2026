@@ -62,12 +62,12 @@ export default function AppShell({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] print:bg-white">
+    <div className="min-h-screen min-w-0 bg-[#f8f9fa] print:bg-white">
       <Sidebar user={user} collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />
       <MobileSidebar user={user} open={mobileOpen} onClose={() => setMobileOpen(false)} />
-      <div className={`transition-[padding] duration-200 print:pl-0 md:pl-16 ${collapsed ? "lg:pl-16" : "lg:pl-[260px]"}`}>
+      <div className={`min-w-0 transition-[padding] duration-200 print:pl-0 md:pl-16 ${collapsed ? "lg:pl-16" : "lg:pl-[260px]"}`}>
         <Topbar user={user} onOpenMenu={() => setMobileOpen(true)} collapsed={collapsed} onToggleSidebar={() => setCollapsed((value) => !value)} />
-        <main className="w-full px-3 pb-28 pt-3 print:p-0 sm:px-5 sm:pt-5 md:pb-8 lg:px-6">{children}</main>
+        <main className="min-w-0 max-w-full px-3 pb-28 pt-3 print:p-0 sm:px-5 sm:pt-5 md:pb-8 lg:px-6">{children}</main>
       </div>
       <InternalAiChat variant="floating" />
       <MobileBottomNav user={user} />
