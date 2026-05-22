@@ -1068,6 +1068,7 @@ export async function GET(request) {
     const summary = buildSummary(data);
     const activeData = data.filter((item) => String(item.kondisi || "").toUpperCase() === "AKTIF");
     const baseChartItems = activeData.length ? activeData : data;
+    const canFilterDashboardUkpd = [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH].includes(user.role);
     const dashboardMenuWilayahOptions = user.role === ROLES.SUPER_ADMIN
       ? buildDashboardMenuWilayahOptions(baseChartItems, ukpdList)
       : [];
@@ -1079,9 +1080,14 @@ export async function GET(request) {
     const wilayahChartItems = wilayahFilter === "all"
       ? baseChartItems
       : baseChartItems.filter((item) => getWilayahLabel(item, ukpdList) === wilayahFilter);
-    const chartItems = statusFilter === "total"
+    const dashboardMenuUkpdOptions = canFilterDashboardUkpd ? buildAnalyticsUkpdOptions(wilayahChartItems) : [];
+    const ukpdFilter = canFilterDashboardUkpd ? normalizeDashboardUkpdFilter(ukpdInput, dashboardMenuUkpdOptions) : "all";
+    const ukpdChartItems = ukpdFilter === "all"
       ? wilayahChartItems
-      : wilayahChartItems.filter((item) => normalizeJenisPegawai(item.jenis_pegawai) === statusFilter);
+      : wilayahChartItems.filter((item) => (item.nama_ukpd || "Tidak Diketahui") === ukpdFilter);
+    const chartItems = statusFilter === "total"
+      ? ukpdChartItems
+      : ukpdChartItems.filter((item) => normalizeJenisPegawai(item.jenis_pegawai) === statusFilter);
     const chartSummary = buildSummary(chartItems);
     const dashboardMenus = buildDashboardMenus(chartItems, chartSummary, {
       ukpdList,
@@ -1089,7 +1095,7 @@ export async function GET(request) {
       includeUkpdStatusChart: false
     });
     const dashboardMenusByStatus = {
-      [`${wilayahFilter}::${statusFilter}`]: dashboardMenus,
+      [`${wilayahFilter}::${ukpdFilter}::${statusFilter}`]: dashboardMenus,
       [statusFilter]: dashboardMenus
     };
     if (statusFilter === "total") {
@@ -1101,9 +1107,11 @@ export async function GET(request) {
       summary,
       dashboardMenus,
       dashboardMenusByStatus,
-      dashboardMenuStatusOptions: buildDashboardMenuStatusOptions(wilayahChartItems),
+      dashboardMenuStatusOptions: buildDashboardMenuStatusOptions(ukpdChartItems),
       dashboardMenuWilayahOptions,
       dashboardMenuActiveWilayah: wilayahFilter,
+      dashboardMenuUkpdOptions,
+      dashboardMenuActiveUkpd: ukpdFilter,
       latestEmployees: data.slice(0, 5),
       usulanSummary: {
         mutasi: 0,

@@ -974,13 +974,17 @@ function DashboardMenuCharts({
   wilayahOptions = [],
   activeWilayah = "all",
   onWilayahChange,
+  ukpdOptions = [],
+  activeUkpd = "all",
+  onUkpdChange,
   statusLoading = false,
   wilayahLoading = false,
+  ukpdLoading = false,
   activeMenu,
   onMenuChange
 }) {
-  const activeCacheKey = `${activeWilayah || "all"}::${activeStatus || "total"}`;
-  const activeMenus = menusByStatus[activeCacheKey] || menusByStatus[activeStatus] || menusByStatus.total || menus;
+  const activeCacheKey = `${activeWilayah || "all"}::${activeUkpd || "all"}::${activeStatus || "total"}`;
+  const activeMenus = menusByStatus[activeCacheKey] || menus;
   const menuItems = dashboardMenuOrder
     .filter((id) => activeMenus[id])
     .map((id) => ({ id, ...activeMenus[id] }));
@@ -1015,9 +1019,9 @@ function DashboardMenuCharts({
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-lg font-bold text-dinkes-900">{activeView.title}</h2>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+          <div className="grid w-full gap-3 sm:grid-cols-2 xl:w-auto xl:grid-cols-[minmax(180px,240px)_minmax(220px,320px)_minmax(180px,240px)]">
             {wilayahOptions.length > 1 ? (
-              <label className="flex w-full flex-col gap-1 text-sm font-semibold text-slate-700 sm:w-72">
+              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-slate-700">
                 <span className="section-label">Wilayah</span>
                 <select
                   className="input py-2"
@@ -1034,8 +1038,27 @@ function DashboardMenuCharts({
                 {wilayahLoading ? <span className="text-xs font-medium text-slate-500">Memuat...</span> : null}
               </label>
             ) : null}
+            {ukpdOptions.length ? (
+              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-slate-700">
+                <span className="section-label">UKPD</span>
+                <select
+                  className="input py-2"
+                  value={activeUkpd}
+                  disabled={ukpdLoading}
+                  onChange={(event) => onUkpdChange(event.target.value)}
+                >
+                  <option value="all">Semua UKPD</option>
+                  {ukpdOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} ({formatNumber(option.total)})
+                    </option>
+                  ))}
+                </select>
+                {ukpdLoading ? <span className="text-xs font-medium text-slate-500">Memuat...</span> : null}
+              </label>
+            ) : null}
             {statusOptions.length > 1 ? (
-              <label className="flex w-full flex-col gap-1 text-sm font-semibold text-slate-700 sm:w-72">
+              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-slate-700">
                 <span className="section-label">Status Pegawai</span>
                 <select
                   className="input py-2"
@@ -1085,6 +1108,7 @@ export default function DashboardPage() {
   const [dashboardMenu, setDashboardMenu] = useState("dashboard");
   const [dashboardStatus, setDashboardStatus] = useState("total");
   const [dashboardWilayah, setDashboardWilayah] = useState("all");
+  const [dashboardUkpd, setDashboardUkpd] = useState("all");
   const [dashboardStatusLoading, setDashboardStatusLoading] = useState(false);
   const [dashboardStatusError, setDashboardStatusError] = useState("");
   const [analytics, setAnalytics] = useState(null);
@@ -1099,6 +1123,7 @@ export default function DashboardPage() {
     setErrorMessage("");
     setDashboardStatus("total");
     setDashboardWilayah("all");
+    setDashboardUkpd("all");
     setDashboardStatusError("");
     setDashboardStatusLoading(false);
     setAnalytics(null);
@@ -1196,17 +1221,18 @@ export default function DashboardPage() {
     await loadAnalytics(analyticsWilayah, nextUkpd, { force: true });
   }
 
-  function getDashboardMenuCacheKey(status, wilayah) {
-    return `${wilayah || "all"}::${status || "total"}`;
+  function getDashboardMenuCacheKey(status, wilayah, ukpd) {
+    return `${wilayah || "all"}::${ukpd || "all"}::${status || "total"}`;
   }
 
-  async function loadDashboardMenus(nextStatus, nextWilayah) {
+  async function loadDashboardMenus(nextStatus, nextWilayah, nextUkpd) {
     setDashboardStatusLoading(true);
     setDashboardStatusError("");
     try {
       const params = new URLSearchParams();
       if (nextStatus && nextStatus !== "total") params.set("status", nextStatus);
       if (nextWilayah && nextWilayah !== "all") params.set("wilayah", nextWilayah);
+      if (nextUkpd && nextUkpd !== "all") params.set("ukpd", nextUkpd);
       const query = params.toString();
       const response = await fetch(`/api/dashboard${query ? `?${query}` : ""}`, { cache: "no-store" });
       const contentType = response.headers.get("content-type") || "";
@@ -1217,7 +1243,8 @@ export default function DashboardPage() {
       const payload = await response.json();
       if (!payload?.success) throw new Error(payload?.message || "Dashboard gagal dimuat.");
       const nextMenus = payload?.data?.dashboardMenus || {};
-      const nextCacheKey = getDashboardMenuCacheKey(nextStatus, nextWilayah);
+      const activeUkpd = payload?.data?.dashboardMenuActiveUkpd || nextUkpd || "all";
+      const nextCacheKey = getDashboardMenuCacheKey(nextStatus, nextWilayah, activeUkpd);
       setData((current) => current ? {
         ...current,
         dashboardMenus: nextMenus,
@@ -1227,10 +1254,13 @@ export default function DashboardPage() {
         },
         dashboardMenuStatusOptions: payload?.data?.dashboardMenuStatusOptions || current.dashboardMenuStatusOptions,
         dashboardMenuWilayahOptions: payload?.data?.dashboardMenuWilayahOptions || current.dashboardMenuWilayahOptions,
-        dashboardMenuActiveWilayah: payload?.data?.dashboardMenuActiveWilayah || nextWilayah
+        dashboardMenuActiveWilayah: payload?.data?.dashboardMenuActiveWilayah || nextWilayah,
+        dashboardMenuUkpdOptions: payload?.data?.dashboardMenuUkpdOptions || current.dashboardMenuUkpdOptions,
+        dashboardMenuActiveUkpd: activeUkpd
       } : current);
       setDashboardStatus(nextStatus);
       setDashboardWilayah(nextWilayah);
+      setDashboardUkpd(activeUkpd);
     } catch (error) {
       setDashboardStatusError(error.message || "Filter dashboard gagal dimuat.");
     } finally {
@@ -1241,18 +1271,29 @@ export default function DashboardPage() {
   async function handleDashboardStatusChange(nextStatus) {
     if (!data || nextStatus === dashboardStatus) return;
 
-    const cacheKey = getDashboardMenuCacheKey(nextStatus, dashboardWilayah);
+    const cacheKey = getDashboardMenuCacheKey(nextStatus, dashboardWilayah, dashboardUkpd);
     if (data.dashboardMenusByStatus?.[cacheKey]) {
       setDashboardStatus(nextStatus);
       return;
     }
 
-    await loadDashboardMenus(nextStatus, dashboardWilayah);
+    await loadDashboardMenus(nextStatus, dashboardWilayah, dashboardUkpd);
   }
 
   async function handleDashboardWilayahChange(nextWilayah) {
     if (!data || nextWilayah === dashboardWilayah) return;
-    await loadDashboardMenus(dashboardStatus, nextWilayah);
+    await loadDashboardMenus(dashboardStatus, nextWilayah, "all");
+  }
+
+  async function handleDashboardUkpdChange(nextUkpd) {
+    if (!data || nextUkpd === dashboardUkpd) return;
+    const cacheKey = getDashboardMenuCacheKey(dashboardStatus, dashboardWilayah, nextUkpd);
+    if (data.dashboardMenusByStatus?.[cacheKey]) {
+      setDashboardUkpd(nextUkpd);
+      return;
+    }
+
+    await loadDashboardMenus(dashboardStatus, dashboardWilayah, nextUkpd);
   }
 
   return (
@@ -1282,8 +1323,12 @@ export default function DashboardPage() {
         wilayahOptions={data.dashboardMenuWilayahOptions || []}
         activeWilayah={dashboardWilayah}
         onWilayahChange={handleDashboardWilayahChange}
+        ukpdOptions={data.dashboardMenuUkpdOptions || []}
+        activeUkpd={dashboardUkpd}
+        onUkpdChange={handleDashboardUkpdChange}
         statusLoading={dashboardStatusLoading}
         wilayahLoading={dashboardStatusLoading}
+        ukpdLoading={dashboardStatusLoading}
         activeMenu={dashboardMenu}
         onMenuChange={setDashboardMenu}
       />
