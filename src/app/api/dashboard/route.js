@@ -667,7 +667,7 @@ function buildDashboardMenus(items, summary, options = {}) {
       ]
     },
     pangkat: {
-      label: "Berdasarkan Pangkat",
+      label: "Pangkat/Golongan",
       title: "Data Pegawai Berdasarkan Pangkat/Golongan",
       subtitle: "Menggunakan pangkat/golongan terakhir pada data pegawai.",
       charts: [
@@ -686,7 +686,7 @@ function buildDashboardMenus(items, summary, options = {}) {
       ]
     },
     rumpunJabatan: {
-      label: "Berdasarkan Rumpun Jabatan",
+      label: "Rumpun Jabatan",
       title: "Data Pegawai Berdasarkan Rumpun Jabatan",
       subtitle: "Sebaran pegawai menurut rumpun jabatan dan jenis kelamin.",
       charts: [
@@ -705,7 +705,7 @@ function buildDashboardMenus(items, summary, options = {}) {
       ]
     },
     masaKerja: {
-      label: "Berdasarkan Masa Kerja",
+      label: "Masa Kerja",
       title: "Data Pegawai Berdasarkan Masa Kerja",
       subtitle: "Masa kerja dihitung dari TMT Kerja UKPD dengan kategori per 2 tahun sampai >20 tahun.",
       charts: [
@@ -724,7 +724,7 @@ function buildDashboardMenus(items, summary, options = {}) {
       ]
     },
     umur: {
-      label: "Berdasarkan Umur",
+      label: "Umur",
       title: "Data Pegawai Berdasarkan Kelompok Umur",
       subtitle: "Umur dihitung dari tanggal lahir pegawai.",
       charts: [
@@ -743,7 +743,7 @@ function buildDashboardMenus(items, summary, options = {}) {
       ]
     },
     pendidikan: {
-      label: "Berdasarkan Pendidikan",
+      label: "Pendidikan",
       title: "Data Pegawai Berdasarkan Jenjang Pendidikan",
       subtitle: "Menggunakan jenjang pendidikan terakhir yang sudah dinormalisasi.",
       charts: [
@@ -762,7 +762,7 @@ function buildDashboardMenus(items, summary, options = {}) {
       ]
     },
     pensiun: {
-      label: "Berdasarkan Pensiun",
+      label: "Pensiun",
       title: "Data ASN Berdasarkan Perkiraan Pensiun",
       subtitle: `Proyeksi ${pensionProjection.yearRange}; BUP umum 58, JPT Pratama/Ahli Madya 60, Ahli Utama 65.`,
       statCards: pensionProjection.statCards,
@@ -788,7 +788,7 @@ function buildDashboardMenus(items, summary, options = {}) {
   return {
     ...menus,
     wilayah: {
-      label: "Berdasarkan Wilayah",
+      label: "Wilayah",
       title: "Data Pegawai Berdasarkan Wilayah",
       subtitle: "Sebaran pegawai aktif menurut wilayah administrasi atau wilayah UKPD.",
       charts: [
@@ -808,7 +808,7 @@ function buildDashboardMenus(items, summary, options = {}) {
       ]
     },
     ukpd: {
-      label: "Berdasarkan UKPD",
+      label: "UKPD",
       title: "Data Pegawai Berdasarkan UKPD",
       subtitle: "Menampilkan UKPD dengan jumlah pegawai terbanyak sesuai filter status pegawai.",
       charts: [
