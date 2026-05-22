@@ -88,7 +88,7 @@ function getDashboardCache() {
   return globalThis.__sisdmkDashboardPayloadCache;
 }
 
-function createDashboardCacheKey(user, detail, statusFilter, wilayahFilter) {
+function createDashboardCacheKey(user, detail, statusFilter, wilayahFilter, ukpdFilter) {
   return [
     user?.role,
     user?.id,
@@ -97,7 +97,8 @@ function createDashboardCacheKey(user, detail, statusFilter, wilayahFilter) {
     user?.wilayah,
     detail,
     statusFilter,
-    wilayahFilter
+    wilayahFilter,
+    ukpdFilter
   ].map((value) => encodeURIComponent(String(value || ""))).join("|");
 }
 
@@ -898,6 +899,28 @@ function normalizeDashboardWilayahFilter(value, options = [], user) {
   return options.some((option) => option.value === text) ? text : "all";
 }
 
+function buildAnalyticsUkpdOptions(data) {
+  const byName = new Map();
+  for (const item of data) {
+    const namaUkpd = item.nama_ukpd || "Tidak Diketahui";
+    if (!byName.has(namaUkpd)) {
+      byName.set(namaUkpd, {
+        value: namaUkpd,
+        label: namaUkpd,
+        wilayah: item.wilayah || "",
+        jenis_ukpd: item.jenis_ukpd || ""
+      });
+    }
+  }
+  return [...byName.values()].sort((a, b) => a.label.localeCompare(b.label, "id"));
+}
+
+function normalizeDashboardUkpdFilter(value, options = []) {
+  const text = String(value || "all").trim();
+  if (!text || text === "all") return "all";
+  return options.some((option) => option.value === text) ? text : "all";
+}
+
 function buildDashboardAnalytics(data, ukpdList) {
   const ukpdMap = new Map();
   const rumpunMap = new Map();
@@ -1002,15 +1025,27 @@ export async function GET(request) {
     const detail = request?.nextUrl?.searchParams?.get("detail") || "summary";
     const statusFilter = normalizeDashboardStatusFilter(request?.nextUrl?.searchParams?.get("status"));
     const wilayahInput = request?.nextUrl?.searchParams?.get("wilayah") || "all";
-    const cacheKey = createDashboardCacheKey(user, detail, statusFilter, wilayahInput);
+    const ukpdInput = request?.nextUrl?.searchParams?.get("ukpd") || "all";
+    const cacheKey = createDashboardCacheKey(user, detail, statusFilter, wilayahInput, ukpdInput);
     const cachedPayload = getCachedDashboardPayload(cacheKey);
     if (cachedPayload) return ok(cachedPayload);
 
     const { data, ukpdList } = await getScopedDashboardData(user);
 
     if (detail === "analytics") {
+      const canFilterUkpd = [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH].includes(user.role);
+      const ukpdFilterOptions = canFilterUkpd ? buildAnalyticsUkpdOptions(data) : [];
+      const activeUkpd = canFilterUkpd ? normalizeDashboardUkpdFilter(ukpdInput, ukpdFilterOptions) : "all";
+      const analyticsData = activeUkpd === "all"
+        ? data
+        : data.filter((item) => (item.nama_ukpd || "Tidak Diketahui") === activeUkpd);
       const payload = {
-        analytics: buildDashboardAnalytics(data, ukpdList)
+        analytics: {
+          ...buildDashboardAnalytics(analyticsData, ukpdList),
+          canFilterUkpd,
+          ukpdFilterOptions,
+          activeUkpd
+        }
       };
 
       setCachedDashboardPayload(cacheKey, payload);

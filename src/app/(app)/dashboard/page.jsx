@@ -130,7 +130,7 @@ function EmployeePivotCountCells({ employee }) {
   );
 }
 
-function PivotDrillPanel({ mode, query }) {
+function PivotDrillPanel({ mode, query, ukpdFilter = "all" }) {
   const [loadingTree, setLoadingTree] = useState(false);
   const [treeError, setTreeError] = useState("");
   const [tree, setTree] = useState([]);
@@ -153,6 +153,7 @@ function PivotDrillPanel({ mode, query }) {
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ mode });
       if (query) params.set("q", query);
+      if (ukpdFilter && ukpdFilter !== "all") params.set("ukpd", ukpdFilter);
       setLoadingTree(true);
       setTreeError("");
       fetch(`/api/dashboard/pivot-tree?${params.toString()}`)
@@ -174,7 +175,7 @@ function PivotDrillPanel({ mode, query }) {
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [mode, query]);
+  }, [mode, query, ukpdFilter]);
 
   function toggleLevel1(label) {
     setOpen1((current) => ({ ...current, [label]: !current[label] }));
@@ -185,6 +186,7 @@ function PivotDrillPanel({ mode, query }) {
     setLoadingNode(nodeKey);
     const params = new URLSearchParams({ mode, group1, group2, page: String(page), pageSize: String(pageSize) });
     if (query) params.set("q", query);
+    if (ukpdFilter && ukpdFilter !== "all") params.set("ukpd", ukpdFilter);
     try {
       const response = await fetch(`/api/dashboard/pivot-tree?${params.toString()}`);
       const payload = await response.json();
@@ -394,7 +396,7 @@ function PivotDrillPanel({ mode, query }) {
   );
 }
 
-function UkpdDrillPanel({ query }) {
+function UkpdDrillPanel({ query, ukpdFilter = "all" }) {
   const [loadingTree, setLoadingTree] = useState(false);
   const [treeError, setTreeError] = useState("");
   const [tree, setTree] = useState([]);
@@ -425,6 +427,7 @@ function UkpdDrillPanel({ query }) {
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ mode: "ukpd" });
       if (query) params.set("q", query);
+      if (ukpdFilter && ukpdFilter !== "all") params.set("ukpd", ukpdFilter);
       setLoadingTree(true);
       setTreeError("");
       fetch(`/api/dashboard/pivot-tree?${params.toString()}`)
@@ -445,13 +448,14 @@ function UkpdDrillPanel({ query }) {
         .finally(() => setLoadingTree(false));
     }, 350);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, ukpdFilter]);
 
   async function loadEmployees(group1, group2, group3, page = 1) {
     const nodeKey = `${group1}::${group2}::${group3}`;
     setLoadingNode(nodeKey);
     const params = new URLSearchParams({ mode: "ukpd", group1, group2, group3, page: String(page), pageSize: String(pageSize) });
     if (query) params.set("q", query);
+    if (ukpdFilter && ukpdFilter !== "all") params.set("ukpd", ukpdFilter);
     try {
       const response = await fetch(`/api/dashboard/pivot-tree?${params.toString()}`);
       const payload = await response.json();
@@ -702,7 +706,7 @@ function UkpdDrillPanel({ query }) {
   );
 }
 
-function DashboardAnalyticsPanel({ analytics }) {
+function DashboardAnalyticsPanel({ analytics, activeUkpd = "all", onUkpdChange, ukpdLoading = false }) {
   const [activeTab, setActiveTab] = useState("ukpd");
   const [query, setQuery] = useState("");
   const normalizedQuery = query.toLowerCase();
@@ -711,6 +715,8 @@ function DashboardAnalyticsPanel({ analytics }) {
   const rumpunRows = analytics?.rumpunByJenisPegawai || [];
   const jabatanRows = analytics?.jabatanMenpanByJenisPegawai || [];
   const ukpdRows = analytics?.ukpdSummary || [];
+  const ukpdFilterOptions = analytics?.ukpdFilterOptions || [];
+  const canFilterUkpd = Boolean(analytics?.canFilterUkpd && ukpdFilterOptions.length);
 
   const rows = useMemo(() => {
     if (!analytics) return [];
@@ -861,35 +867,51 @@ function DashboardAnalyticsPanel({ analytics }) {
         <header className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-display text-base font-bold text-dinkes-900">{titleByTab[activeTab]}</h2>
           <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            className="btn-secondary"
-            onClick={() => downloadCsv(exportRows.filename, exportRows.headers, exportRows.rows)}
-            type="button"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </button>
-          <label className="relative min-w-64">
-            <span className="sr-only">Cari analitik</span>
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input className="input py-2 pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholderByTab[activeTab]} />
-          </label>
-        </div>
+            {canFilterUkpd ? (
+              <label className="min-w-64">
+                <span className="sr-only">Filter UKPD analitik</span>
+                <select
+                  className="input py-2"
+                  value={activeUkpd}
+                  onChange={(event) => onUkpdChange?.(event.target.value)}
+                  disabled={ukpdLoading}
+                >
+                  <option value="all">Semua UKPD</option>
+                  {ukpdFilterOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <button
+              className="btn-secondary"
+              onClick={() => downloadCsv(exportRows.filename, exportRows.headers, exportRows.rows)}
+              type="button"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </button>
+            <label className="relative min-w-64">
+              <span className="sr-only">Cari analitik</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input className="input py-2 pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={placeholderByTab[activeTab]} />
+            </label>
+          </div>
       </header>
 
       <div>
         {activeTab === "ukpd" ? (
           <>
-            <UkpdDrillPanel query={query} />
+            <UkpdDrillPanel query={query} ukpdFilter={activeUkpd} />
           </>
         ) : activeTab === "pendidikan" ? (
-          <PivotDrillPanel mode="pendidikan" query={query} />
+          <PivotDrillPanel mode="pendidikan" query={query} ukpdFilter={activeUkpd} />
         ) : activeTab === "rumpun" ? (
-          <PivotDrillPanel mode="rumpun" query={query} />
+          <PivotDrillPanel mode="rumpun" query={query} ukpdFilter={activeUkpd} />
         ) : activeTab === "jabatan" ? (
-          <PivotDrillPanel mode="jabatan" query={query} />
+          <PivotDrillPanel mode="jabatan" query={query} ukpdFilter={activeUkpd} />
         ) : activeTab === "masa-kerja" ? (
-          <PivotDrillPanel mode="masa-kerja" query={query} />
+          <PivotDrillPanel mode="masa-kerja" query={query} ukpdFilter={activeUkpd} />
         ) : null}
       </div>
       <footer className="mt-3 text-sm text-slate-500">
@@ -1038,6 +1060,7 @@ export default function DashboardPage() {
   const [dashboardStatusLoading, setDashboardStatusLoading] = useState(false);
   const [dashboardStatusError, setDashboardStatusError] = useState("");
   const [analytics, setAnalytics] = useState(null);
+  const [analyticsUkpd, setAnalyticsUkpd] = useState("all");
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState("");
 
@@ -1050,6 +1073,7 @@ export default function DashboardPage() {
     setDashboardStatusError("");
     setDashboardStatusLoading(false);
     setAnalytics(null);
+    setAnalyticsUkpd("all");
     setAnalyticsError("");
     setAnalyticsLoading(false);
     fetch("/api/dashboard", { cache: "no-store" })
@@ -1101,13 +1125,15 @@ export default function DashboardPage() {
   ];
   const totalPegawai = Number(data.summary.total || 0);
 
-  async function loadAnalytics() {
-    if (analytics || analyticsLoading) return;
+  async function loadAnalytics(nextUkpd = analyticsUkpd, { force = false } = {}) {
+    if ((!force && analytics) || analyticsLoading) return;
 
     setAnalyticsLoading(true);
     setAnalyticsError("");
     try {
-      const response = await fetch("/api/dashboard?detail=analytics", { cache: "no-store" });
+      const params = new URLSearchParams({ detail: "analytics" });
+      if (nextUkpd && nextUkpd !== "all") params.set("ukpd", nextUkpd);
+      const response = await fetch(`/api/dashboard?${params.toString()}`, { cache: "no-store" });
       const contentType = response.headers.get("content-type") || "";
       if (!contentType.includes("application/json")) {
         throw new Error(`API analitik mengembalikan respons bukan JSON (HTTP ${response.status}).`);
@@ -1115,12 +1141,20 @@ export default function DashboardPage() {
 
       const payload = await response.json();
       if (!payload?.success) throw new Error(payload?.message || "Analitik gagal dimuat.");
-      setAnalytics(payload?.data?.analytics || null);
+      const nextAnalytics = payload?.data?.analytics || null;
+      setAnalytics(nextAnalytics);
+      setAnalyticsUkpd(nextAnalytics?.activeUkpd || nextUkpd || "all");
     } catch (error) {
       setAnalyticsError(error.message || "Analitik gagal dimuat.");
     } finally {
       setAnalyticsLoading(false);
     }
+  }
+
+  async function handleAnalyticsUkpdChange(nextUkpd) {
+    if (nextUkpd === analyticsUkpd) return;
+    setAnalyticsUkpd(nextUkpd);
+    await loadAnalytics(nextUkpd, { force: true });
   }
 
   function getDashboardMenuCacheKey(status, wilayah) {
@@ -1221,12 +1255,17 @@ export default function DashboardPage() {
       ) : null}
 
       {analytics ? (
-        <DashboardAnalyticsPanel analytics={analytics} />
+        <DashboardAnalyticsPanel
+          analytics={analytics}
+          activeUkpd={analyticsUkpd}
+          onUkpdChange={handleAnalyticsUkpdChange}
+          ukpdLoading={analyticsLoading}
+        />
       ) : (
         <section className="surface mt-4 p-4">
           <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-display text-lg font-bold text-dinkes-900">Analitik Detail</h2>
-            <button className="btn-secondary" type="button" onClick={loadAnalytics} disabled={analyticsLoading}>
+            <button className="btn-secondary" type="button" onClick={() => loadAnalytics()} disabled={analyticsLoading}>
               <BarChart3 className="h-4 w-4" />
               {analyticsLoading ? "Memuat..." : "Muat Analitik Detail"}
             </button>

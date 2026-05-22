@@ -13,6 +13,12 @@ function sortText(a, b) {
   return String(a || "").localeCompare(String(b || ""), "id");
 }
 
+function filterByUkpd(data, ukpdFilter) {
+  const text = String(ukpdFilter || "all").trim();
+  if (!text || text === "all") return data;
+  return data.filter((item) => (item.nama_ukpd || "Tidak Diketahui") === text);
+}
+
 function mapEmployee(item) {
   return {
     id_pegawai: item.id_pegawai,
@@ -291,6 +297,7 @@ export async function GET(request) {
           ? "masa-kerja"
         : "rumpun";
   const q = (searchParams.get("q") || "").toLowerCase();
+  const ukpd = searchParams.get("ukpd") || "all";
   const group1 = searchParams.get("group1") || "";
   const group2 = searchParams.get("group2") || "";
   const group3 = searchParams.get("group3") || "";
@@ -298,8 +305,9 @@ export async function GET(request) {
   const pageSize = Math.min(50, Math.max(10, Number.parseInt(searchParams.get("pageSize") || "20", 10)));
 
   const { data: scoped, ukpdList } = await getScopedDashboardData(user);
+  const ukpdScoped = filterByUkpd(scoped, ukpd);
   const filtered = q
-    ? scoped.filter((item) =>
+    ? ukpdScoped.filter((item) =>
       [
         item.nama,
         item.nip,
@@ -312,7 +320,7 @@ export async function GET(request) {
         .toLowerCase()
         .includes(q)
     )
-    : scoped;
+    : ukpdScoped;
 
   if (group1 && group2 && (mode !== "ukpd" || group3)) {
     const employeesAll = filtered
