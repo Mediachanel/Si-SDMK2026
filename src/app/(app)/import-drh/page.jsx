@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, FileText, LoaderCircle, Save, Table2, UploadCloud } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import DataTable from "@/components/tables/DataTable";
@@ -483,15 +483,57 @@ function ParsedPreviewDetail({ item, onCellChange, onSave, saving, saveError, sa
   );
 }
 
+function ImportSkeletonPreview({ progress }) {
+  return (
+    <div className="surface p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="h-5 w-56 animate-pulse rounded bg-slate-200" />
+          <div className="mt-2 h-3 w-72 max-w-full animate-pulse rounded bg-slate-100" />
+        </div>
+        <div className="h-8 w-20 animate-pulse rounded-full bg-slate-100" />
+      </div>
+      <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-100">
+        <div className="h-full rounded-full bg-dinkes-blue transition-all duration-500" style={{ width: `${progress}%` }} />
+      </div>
+      <div className="mt-2 text-sm font-semibold text-dinkes-navy">Parsing PDF DRH {progress}%</div>
+      <div className="mt-6 grid gap-3">
+        {[0, 1, 2, 3].map((row) => (
+          <div key={row} className="grid grid-cols-[140px_1fr_120px] gap-3">
+            <div className="h-10 animate-pulse rounded bg-slate-100" />
+            <div className="h-10 animate-pulse rounded bg-slate-100" />
+            <div className="h-10 animate-pulse rounded bg-slate-100" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ImportDrhPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
   const [selectedPreviewId, setSelectedPreviewId] = useState("");
   const [savingPreviewId, setSavingPreviewId] = useState("");
   const [saveError, setSaveError] = useState("");
   const [saveNotice, setSaveNotice] = useState("");
+
+  useEffect(() => {
+    if (!loading) return undefined;
+    setImportProgress(8);
+    const timer = window.setInterval(() => {
+      setImportProgress((current) => {
+        if (current < 40) return current + 7;
+        if (current < 78) return current + 4;
+        if (current < 92) return current + 1;
+        return current;
+      });
+    }, 450);
+    return () => window.clearInterval(timer);
+  }, [loading]);
 
   async function handleImport(event) {
     event.preventDefault();
@@ -524,6 +566,7 @@ export default function ImportDrhPage() {
       }
       setResult(payload.data);
       setSelectedPreviewId(getDefaultPreviewId(payload.data));
+      setImportProgress(100);
     } catch (requestError) {
       const message = requestError instanceof TypeError
         ? "Koneksi ke server import terputus. Refresh halaman lalu coba upload lagi."
@@ -658,9 +701,22 @@ export default function ImportDrhPage() {
           ) : null}
 
           <button className="btn-primary mt-4 flex w-full items-center justify-center gap-2" type="submit" disabled={loading}>
-            {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-            {loading ? "Memproses PDF..." : files.length > 1 ? `Import ${formatCount(files.length)} PDF DRH` : "Import PDF DRH"}
+            <UploadCloud className="h-4 w-4" />
+            {loading ? `Parsing ${importProgress}%` : files.length > 1 ? `Import ${formatCount(files.length)} PDF DRH` : "Import PDF DRH"}
           </button>
+
+          {loading ? (
+            <div className="mt-4 rounded-xl border border-dinkes-blue/20 bg-dinkes-50 p-4">
+              <div className="flex items-center justify-between gap-3 text-sm font-semibold text-dinkes-navy">
+                <span>Memetakan isi PDF DRH</span>
+                <span>{importProgress}%</span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+                <div className="h-full rounded-full bg-dinkes-blue transition-all duration-500" style={{ width: `${importProgress}%` }} />
+              </div>
+              <p className="mt-2 text-xs leading-5 text-dinkes-slate">Sistem sedang membaca halaman, mengekstrak tabel riwayat, dan menyiapkan preview data.</p>
+            </div>
+          ) : null}
 
           {shouldShowResultSummary ? (
             <div className={`mt-4 rounded-xl border p-4 text-sm ${result.batch && result.failedCount ? "border-amber-200 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
@@ -703,6 +759,8 @@ export default function ImportDrhPage() {
         </form>
 
         <div className="space-y-5">
+          {loading ? <ImportSkeletonPreview progress={importProgress} /> : null}
+
           <div className="surface p-5">
             <h2 className="text-lg font-semibold text-slate-950">Ringkasan Hasil Import</h2>
             <DataTable

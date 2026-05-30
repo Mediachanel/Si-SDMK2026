@@ -19,7 +19,6 @@ import MultiStepForm from "@/components/forms/MultiStepForm";
 import Stepper from "@/components/forms/Stepper";
 import FormSection from "@/components/forms/FormSection";
 import ConfirmDeleteModal from "@/components/ui/ConfirmDeleteModal";
-import { JABATAN_STANDAR_OPTIONS } from "@/lib/jabatanStandar";
 import { JENIS_PEGAWAI_OPTIONS } from "@/lib/helpers/pegawaiStatus";
 import {
   AGAMA_OPTIONS,
@@ -695,7 +694,12 @@ const selectField = (labelText, options, required = false) => {
   let schema = yup.string().nullable().test(
     "valid-option",
     `${labelText} harus dipilih dari daftar yang tersedia.`,
-    (value) => !normalizeText(value) || options.includes(value)
+    (value) => {
+      const normalizedValue = normalizeText(value);
+      if (!normalizedValue) return true;
+      const normalizedOptions = new Set((options || []).map(normalizeText).filter(Boolean));
+      return normalizedOptions.has(normalizedValue);
+    }
   );
   if (required) schema = schema.required(`${labelText} wajib diisi.`);
   return schema;
@@ -719,7 +723,7 @@ const baseSchema = yup.object({
   kondisi: yup.string().required("Kondisi wajib dipilih."),
   tmt_kerja_ukpd: dateField("TMT kerja UKPD"),
   nama_jabatan_orb: yup.string().nullable(),
-  nama_jabatan_menpan: selectField("Jabatan Standar Kepgub 11", JABATAN_STANDAR_OPTIONS),
+  nama_jabatan_menpan: yup.string().trim().nullable(),
   struktur_atasan_langsung: yup.string().nullable(),
   pangkat_golongan: selectField("Pangkat/golongan", PANGKAT_GOLONGAN_OPTIONS),
   tmt_pangkat_terakhir: dateField("TMT pangkat"),
@@ -847,6 +851,11 @@ function formatSavedAt(value) {
   }).format(date);
 }
 
+function draftStorage() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage;
+}
+
 function StatusHint({ valid, error }) {
   if (error) {
     return (
@@ -869,6 +878,7 @@ function StatusHint({ valid, error }) {
 
 function InputField({ name, register, error, touched, dirty, options = [], required = false, placeholder, helpText, type, disabled = false }) {
   const isValid = Boolean((touched || dirty) && !error);
+  const listId = `list-${String(name).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   const sharedClassName = [
     "input",
     error ? "border-rose-300 bg-rose-50/70 text-rose-900 focus:border-rose-400 focus:ring-rose-100" : "",
@@ -883,12 +893,20 @@ function InputField({ name, register, error, touched, dirty, options = [], requi
       </div>
       <div className="relative min-w-0">
         {options.length ? (
-          <select className={sharedClassName} disabled={disabled} {...register(name)}>
-            <option value="">{`Pilih ${String(labels[name] || name).toLowerCase()}`}</option>
+          <>
+            <input
+              className={sharedClassName}
+              list={listId}
+              placeholder={`Ketik untuk mencari ${String(labels[name] || name).toLowerCase()}`}
+              disabled={disabled}
+              {...register(name)}
+            />
+            <datalist id={listId}>
             {options.map((option) => (
               <option key={option} value={option}>{option || "-"}</option>
             ))}
-          </select>
+            </datalist>
+          </>
         ) : isTextareaField(name) ? (
           <textarea className={`${sharedClassName} min-h-28 resize-y`} placeholder={placeholder || `Masukkan ${String(labels[name] || name).toLowerCase()}`} disabled={disabled} {...register(name)} />
         ) : (
@@ -939,25 +957,34 @@ function AddressCard({
           const options = addressFieldOptions(addressOptions, tipe, level.key);
           const codeField = codeFieldForAddress(level.key);
           const selectedValue = values?.[codeField] || "";
+          const selectedName = values?.[level.key] || "";
+          const listId = `address-${tipe}-${level.key}`;
           const isValid = Boolean((touchedFields?.[codeField] || dirtyFields?.[codeField]) && !errors?.[codeField] && selectedValue);
           return (
             <label key={level.key} className="min-w-0 space-y-2">
               <span className="label">{level.label}</span>
               <div className="relative min-w-0">
-                <select
+                <input
                   className={[
                     "input",
                     errors?.[codeField] ? "border-rose-300 bg-rose-50/70 text-rose-900 focus:border-rose-400 focus:ring-rose-100" : "",
                     isValid ? "border-emerald-300 bg-emerald-50/40 pr-10 focus:border-emerald-400 focus:ring-emerald-100" : ""
                   ].join(" ")}
-                  value={selectedValue}
-                  onChange={(event) => onAddressChange(tipe, level.key, event.target.value)}
-                >
-                  <option value="">{`Pilih ${level.label.toLowerCase()}`}</option>
+                  list={listId}
+                  placeholder={`Ketik untuk mencari ${level.label.toLowerCase()}`}
+                  key={`${tipe}-${level.key}-${selectedValue}-${selectedName}`}
+                  defaultValue={selectedName}
+                  onChange={(event) => {
+                    const text = event.target.value;
+                    const selected = options.find((option) => option.name === text || option.code === text);
+                    if (!text || selected) onAddressChange(tipe, level.key, selected?.code || "");
+                  }}
+                />
+                <datalist id={listId}>
                   {options.map((option) => (
-                    <option key={option.code} value={option.code}>{option.name}</option>
+                    <option key={option.code} value={option.name}>{option.code}</option>
                   ))}
-                </select>
+                </datalist>
                 {isValid ? <CheckCircle2 className="pointer-events-none absolute right-3 top-3 h-5 w-5 text-emerald-600" /> : null}
               </div>
               <StatusHint valid={isValid} error={errors?.[codeField]?.message} />
@@ -1121,7 +1148,8 @@ export default function PegawaiForm({ initialData, mode = "create" }) {
   useEffect(() => {
     const baseValues = buildInitialForm(initialData);
     try {
-      const savedDraft = sessionStorage.getItem(draftKey);
+      const storage = draftStorage();
+      const savedDraft = storage?.getItem(draftKey);
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
         if (parsed?.data) {
@@ -1191,7 +1219,7 @@ export default function PegawaiForm({ initialData, mode = "create" }) {
       window.clearTimeout(saveTimerRef.current);
       saveTimerRef.current = window.setTimeout(() => {
         const savedAt = new Date().toISOString();
-        sessionStorage.setItem(draftKey, JSON.stringify({ savedAt, data: value }));
+        draftStorage()?.setItem(draftKey, JSON.stringify({ savedAt, data: value }));
         setDraftSavedAt(savedAt);
       }, 500);
     });
@@ -1261,7 +1289,7 @@ export default function PegawaiForm({ initialData, mode = "create" }) {
 
   function saveDraftNow() {
     const savedAt = new Date().toISOString();
-    sessionStorage.setItem(draftKey, JSON.stringify({ savedAt, data: getValues() }));
+    draftStorage()?.setItem(draftKey, JSON.stringify({ savedAt, data: getValues() }));
     setDraftSavedAt(savedAt);
     setBanner({
       type: "success",
@@ -1411,7 +1439,7 @@ export default function PegawaiForm({ initialData, mode = "create" }) {
       }
 
       setPendingSubmitData(null);
-      sessionStorage.removeItem(draftKey);
+      draftStorage()?.removeItem(draftKey);
       router.push(`/pegawai/${result.data.id_pegawai}`);
       router.refresh();
     } catch {
@@ -1589,8 +1617,8 @@ export default function PegawaiForm({ initialData, mode = "create" }) {
           header={<Stepper steps={stepConfig} activeStep={activeStep} onStepChange={goToStep} />}
           body={activeStepNode}
           footer={
-          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-etpp md:fixed md:inset-x-0 md:bottom-0 md:z-30 md:rounded-none md:border-x-0 md:border-b-0 md:bg-white/95 md:shadow-[0_-12px_30px_rgba(15,23,42,0.08)] md:backdrop-blur">
-              <div className="mx-auto flex max-w-[1400px] flex-col gap-3 md:px-4 md:py-3 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur md:static md:rounded-2xl md:border md:bg-white md:shadow-etpp">
+              <div className="mx-auto flex max-w-[1400px] flex-col gap-3 pb-[env(safe-area-inset-bottom)] md:px-4 md:py-1 sm:flex-row sm:items-center sm:justify-between lg:px-8">
                 <div className="text-sm text-slate-500">
                   {draftSavedAt ? `Draft tersimpan otomatis: ${formatSavedAt(draftSavedAt)}` : "Draft belum disimpan."}
                 </div>

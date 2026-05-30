@@ -14,11 +14,11 @@ export default function DataTable({ columns, data, rowKey = "id", actions, actio
     <section className="min-w-0 space-y-3 md:space-y-0">
       <div className="grid gap-3 md:hidden">
         {data.map((item, index) => (
-          <article key={item[rowKey]} className="rounded-lg border border-slate-200 bg-white p-4">
+          <article key={item[rowKey]} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.99]">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 {showNumber ? <p className="mb-1 text-xs font-semibold text-slate-400">#{startNumber + index}</p> : null}
-                <h3 className="truncate text-base font-bold text-slate-950">
+                <h3 className="truncate text-base font-bold text-dinkes-navy">
                   {columns[0]?.render ? columns[0].render(item, index) : item[columns[0]?.key]}
                 </h3>
               </div>
@@ -27,7 +27,7 @@ export default function DataTable({ columns, data, rowKey = "id", actions, actio
             <dl className="mt-3 grid gap-2 text-sm">
               {columns.slice(1).map((column) => (
                 <div key={column.key} className="grid grid-cols-[104px_1fr] gap-3 border-t border-slate-100 pt-2">
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">{column.header}</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-dinkes-slate">{column.header}</dt>
                   <dd className="min-w-0 text-right font-medium text-slate-700">
                     <div className={column.wrap ? "break-words leading-5" : "truncate"}>
                       {column.render ? column.render(item, index) : (item[column.key] || "-")}

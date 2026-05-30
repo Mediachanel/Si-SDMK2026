@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { BarChart3, BriefcaseMedical, Building2, ChevronDown, ChevronRight, Download, GraduationCap, Home, MapPinned, Network, PieChart, Search, ShieldCheck, UserRoundCheck, UsersRound } from "lucide-react";
+import { BarChart3, BriefcaseMedical, Building2, ChevronDown, ChevronRight, Download, GraduationCap, Home, MapPinned, Network, PieChart, Search, ShieldCheck, SlidersHorizontal, UserRoundCheck, UsersRound } from "lucide-react";
 import KpiCard from "@/components/cards/KpiCard";
 import DataTable from "@/components/tables/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -994,16 +994,76 @@ function DashboardMenuCharts({
 
   if (!activeView) return null;
 
+  const renderFilterControls = () => (
+    <>
+      {wilayahOptions.length > 1 ? (
+        <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-slate-700">
+          <span className="section-label">Wilayah</span>
+          <select
+            className="input py-1.5"
+            value={activeWilayah}
+            disabled={wilayahLoading}
+            onChange={(event) => onWilayahChange(event.target.value)}
+          >
+            {wilayahOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} ({formatNumber(option.total)})
+              </option>
+            ))}
+          </select>
+          {wilayahLoading ? <span className="text-xs font-medium text-slate-500">Memuat...</span> : null}
+        </label>
+      ) : null}
+      {ukpdOptions.length ? (
+        <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-slate-700">
+          <span className="section-label">UKPD</span>
+          <select
+            className="input py-1.5"
+            value={activeUkpd}
+            disabled={ukpdLoading}
+            onChange={(event) => onUkpdChange(event.target.value)}
+          >
+            <option value="all">Semua UKPD</option>
+            {ukpdOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} ({formatNumber(option.total)})
+              </option>
+            ))}
+          </select>
+          {ukpdLoading ? <span className="text-xs font-medium text-slate-500">Memuat...</span> : null}
+        </label>
+      ) : null}
+      {statusOptions.length > 1 ? (
+        <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-slate-700">
+          <span className="section-label">Status Pegawai</span>
+          <select
+            className="input py-1.5"
+            value={activeStatus}
+            disabled={statusLoading}
+            onChange={(event) => onStatusChange(event.target.value)}
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} ({formatNumber(option.total)})
+              </option>
+            ))}
+          </select>
+          {statusLoading ? <span className="text-xs font-medium text-slate-500">Memuat...</span> : null}
+        </label>
+      ) : null}
+    </>
+  );
+
   return (
-    <section className="surface mt-4 overflow-hidden">
-      <nav className="flex flex-wrap gap-1 bg-dinkes-800 px-3 py-2" aria-label="Menu dashboard">
+    <section className="surface mt-3 overflow-hidden">
+      <nav className="flex snap-x snap-mandatory gap-1 overflow-x-auto bg-dinkes-800 px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible" aria-label="Menu dashboard">
         {menuItems.map((item) => {
           const Icon = dashboardMenuIcons[item.id] || BarChart3;
           const selected = item.id === activeId;
           return (
             <button
               key={item.id}
-              className={`inline-flex min-w-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold text-white transition focus-ring ${selected ? "border-govgold-300 bg-dinkes-600" : "border-transparent hover:bg-white/10"}`}
+              className={`inline-flex min-w-fit snap-start items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold text-white transition focus-ring sm:min-w-0 ${selected ? "border-govgold-300 bg-dinkes-600" : "border-transparent hover:bg-white/10"}`}
               onClick={() => onMenuChange(item.id)}
               type="button"
             >
@@ -1014,70 +1074,28 @@ function DashboardMenuCharts({
         })}
       </nav>
 
-      <div className="p-4 sm:p-5">
-        <header className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="p-3 sm:p-4">
+        <header className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex flex-col gap-1">
-            <h2 className="font-display text-lg font-bold text-dinkes-900">{activeView.title}</h2>
+            <h2 className="font-display text-base font-bold text-dinkes-900 sm:text-lg">{activeView.title}</h2>
           </div>
-          <div className="grid w-full gap-3 sm:grid-cols-2 xl:w-auto xl:grid-cols-[minmax(180px,240px)_minmax(220px,320px)_minmax(180px,240px)]">
-            {wilayahOptions.length > 1 ? (
-              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-slate-700">
-                <span className="section-label">Wilayah</span>
-                <select
-                  className="input py-2"
-                  value={activeWilayah}
-                  disabled={wilayahLoading}
-                  onChange={(event) => onWilayahChange(event.target.value)}
-                >
-                  {wilayahOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} ({formatNumber(option.total)})
-                    </option>
-                  ))}
-                </select>
-                {wilayahLoading ? <span className="text-xs font-medium text-slate-500">Memuat...</span> : null}
-              </label>
-            ) : null}
-            {ukpdOptions.length ? (
-              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-slate-700">
-                <span className="section-label">UKPD</span>
-                <select
-                  className="input py-2"
-                  value={activeUkpd}
-                  disabled={ukpdLoading}
-                  onChange={(event) => onUkpdChange(event.target.value)}
-                >
-                  <option value="all">Semua UKPD</option>
-                  {ukpdOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} ({formatNumber(option.total)})
-                    </option>
-                  ))}
-                </select>
-                {ukpdLoading ? <span className="text-xs font-medium text-slate-500">Memuat...</span> : null}
-              </label>
-            ) : null}
-            {statusOptions.length > 1 ? (
-              <label className="flex min-w-0 flex-col gap-1 text-sm font-semibold text-slate-700">
-                <span className="section-label">Status Pegawai</span>
-                <select
-                  className="input py-2"
-                  value={activeStatus}
-                  disabled={statusLoading}
-                  onChange={(event) => onStatusChange(event.target.value)}
-                >
-                  {statusOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} ({formatNumber(option.total)})
-                    </option>
-                  ))}
-                </select>
-                {statusLoading ? <span className="text-xs font-medium text-slate-500">Memuat...</span> : null}
-              </label>
-            ) : null}
+          <div className="hidden w-full gap-3 sm:grid sm:grid-cols-2 xl:w-auto xl:grid-cols-[minmax(180px,240px)_minmax(220px,320px)_minmax(180px,240px)]">
+            {renderFilterControls()}
           </div>
         </header>
-        <section className="mt-4 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:snap-none lg:grid-cols-2 lg:overflow-visible lg:pb-0">
+        <details className="mt-2 rounded-lg border border-slate-200 bg-slate-50 sm:hidden">
+          <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-bold text-dinkes-900 [&::-webkit-details-marker]:hidden">
+            <span className="inline-flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              Filter
+            </span>
+            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+          </summary>
+          <div className="grid gap-2 border-t border-slate-200 p-3">
+            {renderFilterControls()}
+          </div>
+        </details>
+        <section className="mt-3 flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:snap-none lg:grid-cols-2 lg:overflow-visible lg:pb-0">
           {(activeView.charts || []).map((chart) => (
             <div key={chart.id || chart.title} className={`w-full min-w-full snap-start lg:min-w-0 ${chart.fullWidth ? "lg:col-span-2" : ""}`}>
               <DashboardChartCard
@@ -1090,7 +1108,7 @@ function DashboardMenuCharts({
                 datasets={chart.datasets}
                 horizontal={Boolean(chart.horizontal)}
                 stacked={Boolean(chart.stacked)}
-                heightClass={chart.compactHeightClass || "h-[300px]"}
+                heightClass={chart.compactHeightClass || "h-[220px] sm:h-[260px]"}
                 compact
               />
             </div>
@@ -1299,14 +1317,14 @@ export default function DashboardPage() {
 
   return (
     <>
-      <header className="mb-5 flex flex-col gap-2 border-b border-slate-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
+      <header className="mb-3 flex flex-col gap-1 border-b border-slate-200 pb-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="section-label text-dinkes-800">Dashboard Utama</p>
-          <h1 className="app-heading mt-1 text-2xl sm:text-3xl">Sistem Informasi SDM Kesehatan</h1>
+          <h1 className="app-heading mt-0.5 text-xl sm:text-2xl">Sistem Informasi SDM Kesehatan</h1>
         </div>
       </header>
 
-      <section className="grid grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-6">
+      <section className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 xl:grid-cols-6">
         <KpiCard title="Total Pegawai" value={data.summary.total} percentage="100%" icon={UsersRound} />
         <KpiCard title="PNS/CPNS" value={data.summary.pnsCpns} percentage={formatPercent(data.summary.pnsCpns, totalPegawai)} icon={ShieldCheck} tone="green" />
         <KpiCard title="PPPK" value={data.summary.pppk} percentage={formatPercent(data.summary.pppk, totalPegawai)} icon={UserRoundCheck} tone="gold" />

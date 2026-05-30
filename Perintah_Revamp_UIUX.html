@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perintah Kerja Teknis Pembaruan UI/UX Sistem SISDMK</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            margin: 40px auto;
+            max-width: 1024px;
+            padding: 0 20px;
+            background-color: #f8fafc;
+        }
+        h1 {
+            color: #0f172a;
+            font-size: 28px;
+            border-bottom: 3px solid #0284c7;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        h2 {
+            color: #0369a1;
+            font-size: 22px;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #0c4a6e;
+            font-size: 16px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-bottom: 25px;
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        ul, ol {
+            margin-top: 5px;
+            margin-bottom: 15px;
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        pre {
+            background-color: #0f172a;
+            color: #38bdf8;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+            border-left: 4px solid #0284c7;
+        }
+        .meta-box {
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-left: 4px solid #0284c7;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+        }
+        .meta-box p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>PERINTAH KERJA IMPLEMENTASI DAN REFORMASI UI/UX SISTEM</h1>
+    <p><strong>SISTEM INFORMASI SDM KESEHATAN (SISDMK) DINAS KESEHATAN PROVINSI DKI JAKARTA</strong></p>
+
+    <div class="meta-box">
+        <p><strong>Dokumen Referensi:</strong> Proposal Spesifikasi Aplikasi SPBE SISDMK Dinas Kesehatan - Revisi Lengkap.docx</p>
+        <p><strong>Tanggal Instruksi:</strong> 29 Mei 2026</p>
+        <p><strong>Otoritas Pemberi Perintah:</strong> UI/UX Master Consultant & Product Strategist</p>
+        <p><strong>Target Implementasi:</strong> Tim Pengembang Aplikasi SISDMK (Next.js 15 & Tailwind CSS)</p>
+    </div>
+
+    <p>Instruksi ini diterbitkan untuk merombak total aspek kenyamanan antarmuka (UI) dan pengalaman pengguna (UX) pada aplikasi SISDMK. Seluruh pengembang wajib mengikuti standarisasi tata letak, komponen interaktif, serta optimasi mobile yang tercantum di bawah ini guna memastikan sistem nyaman digenggam, inklusif, dan meminimalisir kesalahan operasional birokrasi.</p>
+
+    <h2>1. Standarisasi Token Desain Visual Global</h2>
+    <p>Seluruh pengembang wajib menyamakan variabel warna dan tipografi pada berkas konfigurasi Tailwind CSS untuk menjaga konsistensi identitas visual Dinas Kesehatan Provinsi DKI Jakarta.</p>
+    
+    <h3>Konfigurasi Warna dan Tipografi (tailwind.config.ts):</h3>
+    <pre>
+const config = {
+  theme: {
+    extend: {
+      colors: {
+        dinkes: {
+          navy: '#0A2540',    // Warna utama / Dominant (Header, Sidebar, Title)
+          blue: '#0070F3',    // Warna sekunder / Akses tombol interaktif & tautan
+          amber: '#F59E0B',   // Warna aksen untuk status peringatan / butuh tindakan
+          emerald: '#10B981', // Warna sukses untuk verifikasi selesai
+          slate: '#64748B'    // Warna teks netral sekundair
+        }
+      },
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif']
+      }
+    }
+  }
+};
+export default config;
+    </pre>
+
+    <h2>2. Rekayasa Ulang Komponen dan Refaktorisasi Kode Modul Utama</h2>
+
+    <h3>A. Refaktorisasi Tabel Pegawai Menjadi Responsive Card Toggle (Modul F-04 & NF-02)</h3>
+    <p>Dilarang keras membiarkan tabel data pegawai mengalami overflow horizontal pada perangkat mobile. Terapkan sistem penyembunyian responsif menggunakan breakpoint Tailwind CSS.</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Resolusi Layar</th>
+                <th>Komponen UI yang Wajib Aktif</th>
+                <th>Spesifikasi UX</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Layar Kecil (&lt; 768px) / Smartphone</td>
+                <td>Card Layout List</td>
+                <td>Format satu kolom vertikal, sudut rounded-xl, efek active:scale-[0.99] saat ditekan oleh jempol pengguna.</td>
+            </tr>
+            <tr>
+                <td>Layar Besar (&ge; 768px) / Desktop</td>
+                <td>Standard Data Table</td>
+                <td>Server-side pagination, sorting indikator transparan, limit baris per halaman.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <pre>
+// Implementasi pada src/components/pegawai/EmployeeList.tsx
+export default function EmployeeList({ data }) {
+  return (
+    &lt;div&gt;
+      {/* KONDISI MOBILE MOBILE: Tersembunyi di desktop */}
+      &lt;div className="block md:hidden space-y-4 p-4"&gt;
+        {data.map((p) =&gt; (
+          &lt;div key={p.id_pegawai} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm"&gt;
+            &lt;h4 className="font-semibold text-dinkes-navy"&gt;{p.nama}&lt;/h4&gt;
+            &lt;p className="text-xs text-slate-500"&gt;{p.NIP} / {p.NRK}&lt;/p&gt;
+            &lt;div className="mt-2 pt-2 border-t border-slate-100 text-sm"&gt;
+              &lt;div&gt;&lt;span className="text-slate-400"&gt;Jabatan:&lt;/span&gt; {p.jabatan}&lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        ))}
+      &lt;/div&gt;
+
+      {/* KONDISI DESKTOP: Tersembunyi di mobile */}
+      &lt;div className="hidden md:block overflow-x-auto border border-slate-200 rounded-xl"&gt;
+        &lt;table className="w-full text-left"&gt;
+          {/* Render standard body table secara lengkap sesuai kamus data */}
+        &lt;/table&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}
+    </pre>
+
+    <h3>B. Penguatan Kontrol Mekanisme Form Bertahap & Auto-Save Draft (Modul F-06 & NF-03)</h3>
+    <p>Untuk mengatasi kelelahan pengisian formulir data pribadi, alamat, keluarga, dan riwayat, form wajib dibagi menggunakan sistem visual stepper didukung penyimpanan lokal (localStorage).</p>
+    
+    <ol>
+        <li>Setiap input wajib memiliki <strong>Instant Inline Validation</strong> (contoh: NIK langsung memunculkan peringatan kuning jika jumlah digit tidak tepat sama dengan 16 angka).</li>
+        <li>Gunakan <strong>Sticky Footer Action Bar</strong> pada resolusi mobile agar tombol "Selanjutnya" dan "Simpan Draft" selalu menetap di area jangkauan jempol.</li>
+        <li>Terapkan dropdown pencarian teks terintegrasi (*Searchable Dropdown*) untuk memetakan referensi wilayah kelurahan, kecamatan, dan kota guna memangkas durasi gulir layar.</li>
+    </ol>
+
+    <h3>C. Pembuatan Indikator Responsif & Skeleton Screen pada Modul Import DRH (Modul F-08 & NF-03)</h3>
+    <p>Proses parsing dokumen PDF DRH memakan waktu pemrosesan background query yang intensif. Pengembang dilarang menggunakan animasi loading berputar statis (spinner) tanpa kejelasan informasi waktu.</p>
+    
+    <ul>
+        <li><strong>Wajib Menggunakan Progress Bar Persentase:</strong> Tampilkan pergerakan angka persentase kelancaran proses parsing file.</li>
+        <li><strong>Wajib Menggunakan Skeleton Screen Loader:</strong> Tampilkan blok layout bayangan yang berkedip (*animate-pulse*) pada area preview transaksi data untuk meredam kecemasan tunggu pengguna.</li>
+    </ul>
+
+    <h3>D. Layout Split-Screen untuk Validasi Berkas Usulan (Modul F-10, F-11 & F-12)</h3>
+    <p>Verifikator di tingkat Admin Wilayah dan Dinas Kesehatan dilarang dituntut mendownload file PDF secara manual atau membuka tab baru browser secara berulang untuk melakukan cek kelayakan dokumen. Terapkan pembagian layar 50:50 secara presisi.</p>
+
+    <pre>
+// Struktur Halaman Verifikasi Berkas: src/app/admin/usulan/[id]/verify/page.tsx
+export default function VerifyUsulanPage() {
+  return (
+    &lt;div className="grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-64px)] overflow-hidden"&gt;
+      {/* PANEL KIRI: Built-in PDF Document Viewer */}
+      &lt;div className="p-4 h-full overflow-y-auto bg-slate-800"&gt;
+        &lt;iframe src="/path-ke-storage-pdf-checklist.pdf" className="w-full h-full rounded-lg" /&gt;
+      &lt;/div&gt"
+
+      {/* PANEL KANAN: Kontrol Kelayakan & Pengubahan Status Nilai Baku */}
+      &lt;div className="p-6 h-full overflow-y-auto bg-white flex flex-col justify-between"&gt;
+        &lt;div&gt;
+          &lt;h3 className="text-lg font-bold"&gt;Checklist Verifikasi Kelayakan Berkas&lt;/h3&gt;
+          {/* Render daftar elemen checkbox kendali status dan textarea catatan verifikator */}
+        &lt;/div&gt;
+        
+        {/* Tombol Aksi Tetap Berada di Dasar Layar */}
+        &lt;div className="pt-4 border-t border-slate-100 grid grid-cols-2 gap-3"&gt;
+          &lt;button className="bg-red-50 text-red-700 p-3 rounded-lg"&gt;Kembalikan Berkas&lt;/button&gt;
+          &lt;button className="bg-blue-600 text-white p-3 rounded-lg"&gt;Verifikasi Cocok&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}
+    </pre>
+
+    <h2>3. Protokol Validasi Kenyamanan pada Tahap UAT</h2>
+    <p>Sebelum aplikasi dinyatakan siap digunakan secara operasional (Go-Live), tim pengembang bersama tim penjamin mutu wajib menguji aspek kebergunaan antarmuka menggunakan kuesioner **System Usability Scale (SUS)** kepada pengguna perwakilan dari 3 level peran:</p>
+    
+    <ol>
+        <li><strong>Admin UKPD:</strong> Diuji ketepatan pengisian formulir bertahap menggunakan gawai smartphone.</li>
+        <li><strong>Admin Wilayah:</strong> Diuji kecepatan waktu eksekusi verifikasi berkas usulan menggunakan skema layar terbagi.</li>
+        <li><strong>Super Admin / Dinas Pusat:</strong> Diuji fleksibilitas penarikan data drilldown pada sebaran dashboard analitik SDM.</li>
+    </ol>
+    <p>Ambang batas kelulusan nilai rata-rata pengujian SUS untuk UI/UX baru ini ditetapkan minimal berada pada skor <strong>75 (Kategori Good / Acceptable)</strong> sebelum diizinkan migrasi ke server produksi utama.</p>
+
+</body>
+</html>

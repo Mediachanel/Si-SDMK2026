@@ -23,6 +23,15 @@ export const sidebarMenu = [
   { label: "Data Pegawai", href: "/pegawai", icon: UsersRound, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   { label: "Data Pejabat", href: "/pejabat", icon: BriefcaseBusiness, roles: [ROLES.SUPER_ADMIN] },
   {
+    label: "Master Jabatan",
+    icon: BriefcaseBusiness,
+    roles: [ROLES.SUPER_ADMIN],
+    children: [
+      { label: "Jabatan Menpan", href: "/master-jabatan/menpan", icon: BriefcaseBusiness, roles: [ROLES.SUPER_ADMIN] },
+      { label: "Jabatan ORB", href: "/master-jabatan/orb", icon: ClipboardList, roles: [ROLES.SUPER_ADMIN] }
+    ]
+  },
+  {
     label: "Usulan",
     icon: ClipboardList,
     roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD],
@@ -46,6 +55,15 @@ export const desktopMenu = [
   { label: "Dashboard", href: "/dashboard", icon: Home, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   { label: "Data Pegawai", href: "/pegawai", icon: UsersRound, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   { label: "Data Pejabat", href: "/pejabat", icon: BriefcaseBusiness, roles: [ROLES.SUPER_ADMIN] },
+  {
+    label: "Master Jabatan",
+    icon: BriefcaseBusiness,
+    roles: [ROLES.SUPER_ADMIN],
+    children: [
+      { label: "Jabatan Menpan", href: "/master-jabatan/menpan", icon: BriefcaseBusiness, roles: [ROLES.SUPER_ADMIN] },
+      { label: "Jabatan ORB", href: "/master-jabatan/orb", icon: ClipboardList, roles: [ROLES.SUPER_ADMIN] }
+    ]
+  },
   { label: "Pencarian", href: "/pegawai", icon: Search, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   {
     label: "Import Data",

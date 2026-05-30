@@ -7,13 +7,13 @@ export default function KpiCard({ title, value, percentage, icon: Icon, tone = "
   };
 
   return (
-    <article className="surface min-h-[88px] p-3 transition hover:border-dinkes-200 sm:min-h-[112px] sm:p-4">
-      <div className="flex items-start justify-between gap-3">
+    <article className="surface min-h-[58px] min-w-[112px] snap-start p-2 transition hover:border-dinkes-200 sm:min-h-[86px] sm:min-w-0 sm:p-3">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="line-clamp-2 text-[9px] font-bold uppercase leading-4 tracking-wide text-slate-500 sm:text-xs">{title}</p>
-          <strong className="mt-2 block font-display text-lg font-extrabold tabular-nums text-slate-950 sm:text-3xl">{value}</strong>
+          <p className="truncate text-[9px] font-bold uppercase leading-3 tracking-wide text-slate-500 sm:line-clamp-2 sm:text-xs sm:leading-4">{title}</p>
+          <strong className="mt-0.5 block font-display text-base font-extrabold tabular-nums text-slate-950 sm:mt-1 sm:text-2xl">{value}</strong>
           {percentage ? (
-            <span className="mt-2 hidden rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 sm:inline-flex">
+            <span className="mt-1 hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 sm:inline-flex">
               {percentage} dari total
             </span>
           ) : null}

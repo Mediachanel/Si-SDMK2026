@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Public+Sans:wght@600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -13,9 +13,9 @@
   --color-border-soft: #e2e8f0;
   --color-text: #191c1d;
   --color-text-muted: #434750;
-  --color-primary: #00346d;
-  --color-primary-container: #1a4b8c;
-  --color-gold: #d4af37;
+  --color-primary: #0A2540;
+  --color-primary-container: #0070F3;
+  --color-gold: #F59E0B;
 }
 
 * {
@@ -30,7 +30,7 @@ body {
   min-height: 100vh;
   background: var(--color-background);
   color: var(--color-text);
-  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
   letter-spacing: 0;
   overflow-x: hidden;
@@ -46,13 +46,13 @@ textarea {
 h1,
 h2,
 h3 {
-  font-family: "Public Sans", "Inter", "Segoe UI", system-ui, sans-serif;
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", system-ui, sans-serif;
   letter-spacing: 0;
 }
 
 @layer components {
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dinkes-200 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dinkes-blue/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
   }
 
   .surface {
@@ -60,7 +60,7 @@ h3 {
   }
 
   .input {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-dinkes-800 focus:ring-2 focus:ring-dinkes-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400;
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-dinkes-blue focus:ring-2 focus:ring-dinkes-blue/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400;
   }
 
   .label {
@@ -68,11 +68,11 @@ h3 {
   }
 
   .btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-dinkes-800 px-4 py-2.5 text-sm font-semibold text-white shadow-button transition hover:bg-dinkes-700 focus-ring disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-dinkes-blue px-4 py-2.5 text-sm font-semibold text-white shadow-button transition hover:bg-dinkes-navy focus-ring disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-dinkes-600 hover:bg-dinkes-50 hover:text-dinkes-800 focus-ring disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-dinkes-blue hover:bg-dinkes-50 hover:text-dinkes-blue focus-ring disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   .table-th {
@@ -103,7 +103,7 @@ h3 {
   }
 
   .app-heading {
-    @apply font-display font-bold tracking-normal text-dinkes-900;
+    @apply font-display font-bold tracking-normal text-dinkes-navy;
   }
 
   .section-label {

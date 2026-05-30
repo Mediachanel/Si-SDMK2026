@@ -268,11 +268,26 @@ function ActionPanel({
   uploadingKey,
   drawer = false
 }) {
+  const [previewDocumentUrl, setPreviewDocumentUrl] = useState("");
   if (!mode) return null;
 
   if (mode === "verify") {
+    const availableDocuments = Object.entries(verifyForm.dokumen_checklist || {}).filter(([, document]) => document?.url);
+    const activePreviewUrl = previewDocumentUrl || availableDocuments[0]?.[1]?.url || "";
     return (
-      <section className={drawer ? "space-y-5" : "surface space-y-4 p-5"}>
+      <section className={drawer ? "grid h-[calc(100vh-96px)] grid-cols-1 overflow-hidden rounded-xl border border-slate-200 lg:grid-cols-2" : "surface space-y-4 p-5"}>
+        {drawer ? (
+          <div className="min-h-72 bg-slate-800 p-3 lg:h-full">
+            {activePreviewUrl ? (
+              <iframe title="Preview PDF verifikasi mutasi" src={activePreviewUrl} className="h-full min-h-72 w-full rounded-lg bg-white" />
+            ) : (
+              <div className="flex h-full min-h-72 items-center justify-center rounded-lg border border-dashed border-slate-500 text-sm font-medium text-slate-200">
+                Belum ada PDF checklist yang bisa dipreview.
+              </div>
+            )}
+          </div>
+        ) : null}
+        <div className={drawer ? "h-full space-y-5 overflow-y-auto bg-white p-5" : "space-y-4"}>
         {!drawer ? (
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -337,6 +352,9 @@ function ActionPanel({
                           <a className="inline-flex items-center rounded-lg border border-dinkes-200 bg-white px-3 py-1.5 text-xs font-semibold text-dinkes-700 hover:bg-dinkes-50" href={document.url} target="_blank" rel="noreferrer">
                             Lihat PDF
                           </a>
+                          <button className="inline-flex items-center rounded-lg border border-dinkes-200 bg-white px-3 py-1.5 text-xs font-semibold text-dinkes-700 hover:bg-dinkes-50" type="button" onClick={() => setPreviewDocumentUrl(document.url)}>
+                            Preview Inline
+                          </button>
                           <span className="max-w-[260px] truncate text-xs text-slate-500">{document.name} ({formatFileSize(document.size)})</span>
                         </div>
                       ) : (
@@ -386,6 +404,7 @@ function ActionPanel({
           <Save className="h-4 w-4" />
           {saving ? "Menyimpan..." : "Simpan Verifikasi"}
         </button>
+        </div>
       </section>
     );
   }
