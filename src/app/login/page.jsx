@@ -1,17 +1,15 @@
 "use client";
 
-import { Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Bell,
   CalendarClock,
   Camera,
-  ChevronDown,
   ClipboardList,
   Eye,
   EyeOff,
-  FileQuestion,
   Fingerprint,
   IdCard,
   Landmark,
@@ -19,7 +17,6 @@ import {
   LockKeyhole,
   Menu,
   ScanFace,
-  Search,
   ShieldCheck,
   X,
   UserRound,
@@ -27,20 +24,18 @@ import {
 } from "lucide-react";
 import dinkesLogo from "@/Foto/Dinkes.png";
 import { isWebAuthnAvailable, requestOptionsFromJSON, serializePublicKeyCredential } from "@/lib/auth/webauthnClient";
-import PublicAiChat from "@/components/ai/PublicAiChat";
 
-const QUICK_ACTIONS = [
-  { title: "Cari Informasi Mutasi", keyword: "mutasi", description: "Lihat syarat, alur, dan verifikasi usulan mutasi." },
-  { title: "Cek Persyaratan Cuti", keyword: "cuti", description: "Temukan dokumen dan aturan cuti yang berlaku." },
-  { title: "Lihat Alur Kenaikan Pangkat", keyword: "kenaikan pangkat", description: "Pahami tahapan dan dokumen kenaikan pangkat." },
-  { title: "Panduan Disiplin Pegawai", keyword: "disiplin", description: "Pelajari aturan disiplin dan tindak lanjut administratif." }
+const SERVICE_FEATURES = [
+  { title: "Data Pegawai", description: "Profil dan riwayat SDMK", icon: UsersRound },
+  { title: "Usulan", description: "Mutasi dan putus JF", icon: ClipboardList },
+  { title: "DUK", description: "Urutan kepangkatan", icon: IdCard },
+  { title: "Passkey", description: "Login perangkat aman", icon: ShieldCheck }
 ];
 
 const MOBILE_SERVICE_ACTIONS = [
   { title: "Pegawai", description: "Profil SDMK", icon: UsersRound },
   { title: "Usulan", description: "Mutasi & JF", icon: ClipboardList },
-  { title: "DUK", description: "Urutan kerja", icon: IdCard },
-  { title: "QnA", description: "Bantuan", icon: FileQuestion }
+  { title: "DUK", description: "Urutan kerja", icon: IdCard }
 ];
 
 const BIOMETRIC_OPTIONS = [
@@ -64,250 +59,6 @@ function safeNextPath(value) {
   }
 }
 
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function highlightText(text, keyword) {
-  if (!keyword) return text;
-  const normalized = keyword.trim();
-  if (!normalized) return text;
-  const parts = String(text || "").split(new RegExp(`(${escapeRegex(normalized)})`, "ig"));
-  return parts.map((part, index) => (
-    part.toLowerCase() === normalized.toLowerCase()
-      ? <mark key={`${part}-${index}`} className="rounded bg-amber-200/80 px-1 text-slate-900">{part}</mark>
-      : <span key={`${part}-${index}`}>{part}</span>
-  ));
-}
-
-function QnaSection({ quickSearch, onResetQuickSearch }) {
-  const [data, setData] = useState({ categories: [], items: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [openItems, setOpenItems] = useState([]);
-  const deferredSearch = useDeferredValue(search);
-
-  useEffect(() => {
-    async function loadQna() {
-      setLoading(true);
-      setError("");
-      try {
-        const response = await fetch("/api/qna/public", { cache: "no-store" });
-        const payload = await response.json();
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.message || "QnA belum dapat dimuat.");
-        }
-        const categories = payload.data?.categories || [];
-        setData(payload.data || { categories: [], items: [] });
-        setActiveCategory(categories[0]?.id || null);
-      } catch (err) {
-        setError(err.message || "QnA belum dapat dimuat.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadQna();
-  }, []);
-
-  useEffect(() => {
-    if (!quickSearch) return;
-    setSearch(quickSearch);
-    setOpenItems([]);
-  }, [quickSearch]);
-
-  const normalizedSearch = deferredSearch.trim().toLowerCase();
-  const visibleCategories = useMemo(() => {
-    return data.categories.filter((category) => {
-      if (!normalizedSearch) return true;
-      const categoryText = [category.name, category.description, ...(category.items || []).flatMap((item) => [item.question, item.answer])].join(" ").toLowerCase();
-      return categoryText.includes(normalizedSearch);
-    });
-  }, [data.categories, normalizedSearch]);
-
-  useEffect(() => {
-    if (!visibleCategories.length) {
-      setActiveCategory(null);
-      return;
-    }
-    if (!visibleCategories.some((category) => category.id === activeCategory)) {
-      setActiveCategory(visibleCategories[0]?.id || null);
-    }
-  }, [visibleCategories, activeCategory]);
-
-  const selectedCategory = visibleCategories.find((category) => category.id === activeCategory) || null;
-  const visibleItems = useMemo(() => {
-    const source = selectedCategory?.items || [];
-    if (!normalizedSearch) return source;
-    return source.filter((item) => `${item.question} ${item.answer}`.toLowerCase().includes(normalizedSearch));
-  }, [selectedCategory, normalizedSearch]);
-
-  const totalFaq = data.items.length;
-
-  function resetSearch() {
-    setSearch("");
-    setOpenItems([]);
-    onResetQuickSearch?.();
-  }
-
-  return (
-    <section
-      id="qna-layanan"
-      aria-labelledby="qna-heading"
-      className="overflow-hidden rounded-xl bg-white shadow-[0_22px_70px_rgba(15,23,42,0.08)] ring-1 ring-dinkes-100/90"
-    >
-      <div className="grid gap-0 lg:grid-cols-[0.92fr_1.08fr]">
-        <aside className="border-b border-slate-200/80 bg-[linear-gradient(180deg,#f6f9ff,#eef5ff)] p-6 sm:p-8 lg:border-b-0 lg:border-r">
-          <span className="inline-flex rounded-md bg-dinkes-100 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-dinkes-700">Pusat QnA</span>
-          <h2 id="qna-heading" className="mt-5 text-2xl font-bold tracking-normal text-slate-900 sm:text-3xl">Pusat QnA Layanan Kepegawaian</h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Temukan aturan, syarat, dan alur layanan tanpa membuka dokumen panjang.
-          </p>
-
-          <label htmlFor="qna-search" className="mt-6 block">
-            <span className="mb-2 block text-sm font-semibold text-slate-700">Cari topik layanan</span>
-            <span className="relative block">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-              <input
-                id="qna-search"
-                className="h-12 w-full rounded-md border border-[#d8dde6] bg-white px-12 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-dinkes-500 focus:ring-2 focus:ring-dinkes-100"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari mutasi, cuti, kenaikan pangkat, disiplin..."
-              />
-            </span>
-          </label>
-
-          <div className="mt-3 flex flex-wrap gap-3">
-            <button type="button" onClick={resetSearch} className="btn-secondary w-full sm:w-auto">
-              Reset Pencarian
-            </button>
-            {normalizedSearch ? <p className="text-sm text-slate-500">Menampilkan hasil untuk: <span className="font-semibold text-slate-800">{deferredSearch}</span></p> : null}
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            {[
-              { label: "Kategori Aktif", value: String(data.categories.length), icon: FileQuestion },
-              { label: "FAQ Terbit", value: String(totalFaq), icon: ShieldCheck },
-              { label: "Akses", value: "Publik", icon: UsersRound }
-            ].map((item) => (
-              <div key={item.label} className="rounded-lg bg-white/90 p-4 shadow-sm ring-1 ring-dinkes-100">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">{item.label}</p>
-                  <item.icon className="h-4 w-4 text-dinkes-700" aria-hidden="true" />
-                </div>
-                <p className="mt-3 text-2xl font-extrabold text-slate-900">{item.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-slate-500">Kategori</h3>
-              <span className="text-xs font-semibold text-slate-400">{visibleCategories.length} tampil</span>
-            </div>
-
-            <div className="grid gap-2">
-              {loading ? (
-                Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="h-16 animate-pulse rounded-lg bg-white/70 ring-1 ring-slate-200" />
-                ))
-              ) : visibleCategories.length ? (
-                visibleCategories.map((category) => {
-                  const active = category.id === activeCategory;
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => setActiveCategory(category.id)}
-                      className={`rounded-lg border p-4 text-left transition focus-ring ${active ? "border-dinkes-500 bg-dinkes-500 text-white shadow-button" : "border-slate-200 bg-white text-slate-800 hover:border-dinkes-200 hover:bg-dinkes-50/60"}`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-extrabold">{highlightText(category.name, deferredSearch)}</p>
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>
-                          {category.items.length}
-                        </span>
-                      </div>
-                      <p className={`mt-2 text-xs leading-5 ${active ? "text-dinkes-50" : "text-slate-500"}`}>
-                        {highlightText(category.description || "Kategori informasi layanan kepegawaian.", deferredSearch)}
-                      </p>
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="rounded-lg border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500">
-                  Tidak ada hasil. Coba gunakan kata kunci lain.
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
-
-        <div className="bg-white p-6 sm:p-8">
-          <div className="flex flex-col gap-3 border-b border-slate-100 pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-dinkes-600">Jawaban Terpilih</p>
-              <h3 className="mt-2 text-2xl font-bold tracking-normal text-slate-900">
-                {selectedCategory?.name || (loading ? "Memuat QnA..." : "Belum ada kategori")}
-              </h3>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                {selectedCategory?.description || "Pilih kategori untuk melihat daftar pertanyaan dan jawaban yang tersedia."}
-              </p>
-            </div>
-            <div className="rounded-md bg-dinkes-50 px-4 py-3 text-sm font-semibold text-dinkes-700 ring-1 ring-dinkes-100">
-              {visibleItems.length} pertanyaan
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="h-24 animate-pulse rounded-lg bg-slate-100" />
-              ))
-            ) : error ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-800">
-                {error}
-              </div>
-            ) : visibleItems.length ? (
-              visibleItems.map((item) => {
-                const open = openItems.includes(item.id);
-                return (
-                  <article key={item.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-dinkes-200 hover:shadow-md">
-                    <button
-                      type="button"
-                      onClick={() => setOpenItems((current) => current.includes(item.id) ? current.filter((entry) => entry !== item.id) : [...current, item.id])}
-                      className="flex w-full items-start justify-between gap-4 px-5 py-4 text-left focus-ring"
-                    >
-                      <div>
-                        <p className="text-base font-bold leading-7 text-slate-900">{highlightText(item.question, deferredSearch)}</p>
-                        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{highlightText(item.category_name, deferredSearch)}</p>
-                      </div>
-                      <span className={`mt-1 rounded-md border p-2 text-slate-500 transition ${open ? "rotate-180 border-dinkes-200 bg-dinkes-50 text-dinkes-700" : "border-slate-200 bg-white"}`}>
-                        <ChevronDown className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                    </button>
-                    {open ? (
-                      <div className="border-t border-slate-100 bg-slate-50/70 px-5 py-4">
-                        <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{highlightText(item.answer, deferredSearch)}</p>
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })
-            ) : (
-              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-6 text-slate-500">
-                Tidak ada hasil. Coba gunakan kata kunci lain.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function JakartaSilhouette({ compact = false }) {
   return (
     <div className={`pointer-events-none absolute inset-x-0 bottom-0 overflow-hidden ${compact ? "h-32" : "h-48"}`} aria-hidden="true">
@@ -328,7 +79,7 @@ function JakartaSilhouette({ compact = false }) {
   );
 }
 
-function LoginCard({ onOpenQna }) {
+function LoginCard() {
   const router = useRouter();
   const usernameRef = useRef(null);
   const passwordRef = useRef(null);
@@ -381,12 +132,6 @@ function LoginCard({ onOpenQna }) {
   function showLoginNotice(message) {
     setFormError("");
     setBiometricNotice(message);
-  }
-
-  function openPublicQna(keyword = "") {
-    setFormError("");
-    setBiometricNotice("");
-    onOpenQna?.(keyword);
   }
 
   function focusLoginField(field) {
@@ -751,7 +496,7 @@ function LoginCard({ onOpenQna }) {
                 <Bell className="h-5 w-5" aria-hidden="true" />
                 <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-emerald-300 ring-2 ring-[#0f6fa8]" />
               </button>
-              <button type="button" onClick={() => showLoginNotice("Menu utama tersedia setelah login. Untuk informasi layanan, buka QnA publik di bawah halaman ini.")} className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus-ring" aria-label="Buka menu">
+              <button type="button" onClick={() => showLoginNotice("Menu utama tersedia setelah Anda berhasil masuk.")} className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus-ring" aria-label="Buka menu">
                 <Menu className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
@@ -763,7 +508,7 @@ function LoginCard({ onOpenQna }) {
               Masuk ke SI-SDMK Mobile
             </h2>
             <p className="mt-3 text-sm font-medium leading-6 text-white/80">
-              Akses data pegawai, usulan, DUK, dan QnA layanan kepegawaian.
+              Akses data pegawai, usulan, dan DUK layanan kepegawaian.
             </p>
             <div className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white backdrop-blur">
               <Landmark className="h-4 w-4 text-amber-200" aria-hidden="true" />
@@ -880,12 +625,12 @@ function LoginCard({ onOpenQna }) {
               <p className="text-sm font-extrabold text-slate-800">Menu cepat</p>
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-700">Mobile</span>
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {MOBILE_SERVICE_ACTIONS.map((item) => (
                 <button
                   key={item.title}
                   type="button"
-                  onClick={() => item.title === "QnA" ? openPublicQna("") : showLoginNotice("Silakan masuk terlebih dahulu untuk membuka layanan ini.")}
+                  onClick={() => showLoginNotice("Silakan masuk terlebih dahulu untuk membuka layanan ini.")}
                   className="min-w-0 rounded-2xl bg-white px-2 py-3 text-center shadow-sm ring-1 ring-cyan-100 transition hover:-translate-y-0.5 hover:ring-emerald-200 focus-ring"
                 >
                   <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-cyan-50 text-cyan-700">
@@ -1017,21 +762,6 @@ function LoginCard({ onOpenQna }) {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-dinkes-800 ring-1 ring-slate-200">
-              <FileQuestion className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-extrabold text-slate-900">Butuh info layanan?</p>
-              <p className="truncate text-xs font-medium text-slate-500">Buka QnA publik tanpa login.</p>
-            </div>
-          </div>
-          <button type="button" onClick={() => openPublicQna("")} className="shrink-0 rounded-lg bg-white px-3 py-2 text-xs font-extrabold text-dinkes-800 ring-1 ring-slate-200 transition hover:bg-dinkes-50 focus-ring">
-            Buka
-          </button>
-        </div>
-
         {biometricNotice ? <p role="status" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">{biometricNotice}</p> : null}
         {formError ? <p role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{formError}</p> : null}
       </form>
@@ -1117,7 +847,6 @@ function LoginCard({ onOpenQna }) {
 }
 
 function LoginShell() {
-  const [quickSearch, setQuickSearch] = useState("");
   const timestamp = useMemo(() => {
     return new Intl.DateTimeFormat("id-ID", {
       weekday: "short",
@@ -1129,17 +858,6 @@ function LoginShell() {
       timeZoneName: "short"
     }).format(new Date());
   }, []);
-
-  function openPublicQna(keyword = "") {
-    setQuickSearch(keyword);
-
-    window.setTimeout(() => {
-      document.getElementById("qna-layanan")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }, 0);
-  }
 
   return (
     <>
@@ -1183,25 +901,23 @@ function LoginShell() {
 
             <div className="relative z-10 max-w-2xl">
               <div className="flex items-center justify-between gap-4">
-                <p className="text-sm font-extrabold text-white">Bantuan cepat sebelum login</p>
-                <span className="rounded-full bg-govgold-300 px-3 py-1 text-xs font-extrabold text-slate-900">Publik</span>
+                <p className="text-sm font-extrabold text-white">Layanan utama setelah login</p>
+                <span className="rounded-full bg-govgold-300 px-3 py-1 text-xs font-extrabold text-slate-900">Internal</span>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3">
-                {QUICK_ACTIONS.map((item) => (
-                  <button
-                    key={item.keyword}
-                    type="button"
-                    onClick={() => openPublicQna(item.keyword)}
-                    className="flex min-h-[82px] items-start gap-3 rounded-2xl border border-white/20 bg-white/10 p-4 text-left backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15 focus-ring"
+                {SERVICE_FEATURES.map((item) => (
+                  <div
+                    key={item.title}
+                    className="flex min-h-[82px] items-start gap-3 rounded-2xl border border-white/20 bg-white/10 p-4 text-left backdrop-blur"
                   >
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/15 text-amber-100">
-                      <FileQuestion className="h-5 w-5" aria-hidden="true" />
+                      <item.icon className="h-5 w-5" aria-hidden="true" />
                     </span>
                     <span className="min-w-0">
                       <span className="block text-sm font-extrabold leading-5 text-white">{item.title}</span>
                       <span className="mt-1 block text-xs font-medium leading-5 text-white/75">{item.description}</span>
                     </span>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -1210,14 +926,9 @@ function LoginShell() {
           </section>
 
           <section className="flex min-h-screen w-full items-stretch justify-center lg:h-[calc(100vh-117px)] lg:min-h-[560px] lg:max-h-[680px]">
-            <LoginCard onOpenQna={openPublicQna} />
+            <LoginCard />
           </section>
         </main>
-
-        <section className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8 lg:pb-12">
-          <QnaSection quickSearch={quickSearch} onResetQuickSearch={() => setQuickSearch("")} />
-        </section>
-        <PublicAiChat />
       </div>
     </>
   );

@@ -6,8 +6,6 @@ PROJECTS_ROOT="${PROJECTS_ROOT:-/media/devmon/Local Disk/projects}"
 BACKUP_DIR="${BACKUP_DIR:-$PROJECTS_ROOT/backup}"
 UPLOADS_DIR="${UPLOADS_DIR:-$PROJECTS_ROOT/uploads/si-kepegawaian}"
 POSTGRES_DATA_DIR="${POSTGRES_DATA_DIR:-$PROJECTS_ROOT/postgres/data}"
-N8N_DATA_DIR="${N8N_DATA_DIR:-$PROJECTS_ROOT/n8n/data}"
-AI_AGENT_DIR="${AI_AGENT_DIR:-$PROJECTS_ROOT/ai-agent}"
 DOCKER_DIR="${DOCKER_DIR:-$PROJECTS_ROOT/docker}"
 APP_PORT="${APP_PORT:-8091}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.casaos.yml}"
@@ -34,12 +32,7 @@ JWT_SECRET="${JWT_SECRET:-}"
 ALLOW_INSECURE_LOCAL_HTTP="${ALLOW_INSECURE_LOCAL_HTTP:-}"
 COOKIE_SECURE="${COOKIE_SECURE:-}"
 TRUST_PROXY_HEADERS="${TRUST_PROXY_HEADERS:-true}"
-AI_ENABLE_N8N="${AI_ENABLE_N8N:-true}"
-N8N_WEBHOOK_URL="${N8N_WEBHOOK_URL:-}"
-N8N_PUBLIC_WEBHOOK_URL="${N8N_PUBLIC_WEBHOOK_URL:-}"
-N8N_API_SECRET="${N8N_API_SECRET:-}"
-N8N_WEBHOOK_TIMEOUT_MS="${N8N_WEBHOOK_TIMEOUT_MS:-20000}"
-N8N_WEBHOOK_RETRIES="${N8N_WEBHOOK_RETRIES:-1}"
+UKPD_DEFAULT_PASSWORD="${UKPD_DEFAULT_PASSWORD:-}"
 FORCE_ENV="${FORCE_ENV:-0}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 SKIP_DB_CHECK="${SKIP_DB_CHECK:-0}"
@@ -68,10 +61,7 @@ Options:
   --app-origin URL            URL aplikasi, contoh http://192.168.1.10:8091
   --jwt-secret VALUE          JWT secret production
   --trust-proxy-headers true|false Percaya header Cloudflare/proxy, default true
-  --ai-enable-n8n true|false  Aktifkan bridge AI n8n, default true
-  --n8n-webhook-url URL       Webhook n8n untuk chat internal
-  --n8n-public-webhook-url URL Webhook n8n untuk chat publik
-  --n8n-api-secret VALUE      Secret header x-ai-secret untuk n8n dan tool internal
+  --ukpd-default-password VALUE Password default untuk reset UKPD
   --postgres-container NAME   Nama container PostgreSQL existing, default sisdmk-postgres
   --postgres-host HOST        Host PostgreSQL untuk app
   --postgres-database NAME    Nama database, default si_data
@@ -113,24 +103,9 @@ while [ $# -gt 0 ]; do
       TRUST_PROXY_HEADERS="$2"
       shift 2
       ;;
-    --ai-enable-n8n)
+    --ukpd-default-password)
       need_value "$@"
-      AI_ENABLE_N8N="$2"
-      shift 2
-      ;;
-    --n8n-webhook-url)
-      need_value "$@"
-      N8N_WEBHOOK_URL="$2"
-      shift 2
-      ;;
-    --n8n-public-webhook-url)
-      need_value "$@"
-      N8N_PUBLIC_WEBHOOK_URL="$2"
-      shift 2
-      ;;
-    --n8n-api-secret)
-      need_value "$@"
-      N8N_API_SECRET="$2"
+      UKPD_DEFAULT_PASSWORD="$2"
       shift 2
       ;;
     --postgres-container)
@@ -256,15 +231,13 @@ write_env_file() {
     esac
   fi
 
-  mkdir -p "$PROJECTS_ROOT" "$BACKUP_DIR" "$UPLOADS_DIR" "$POSTGRES_DATA_DIR" "$N8N_DATA_DIR" "$AI_AGENT_DIR" "$DOCKER_DIR"
+  mkdir -p "$PROJECTS_ROOT" "$BACKUP_DIR" "$UPLOADS_DIR" "$POSTGRES_DATA_DIR" "$DOCKER_DIR"
   umask 077
   cat >"$ENV_FILE" <<EOF
 PROJECTS_ROOT="$PROJECTS_ROOT"
 BACKUP_DIR="$BACKUP_DIR"
 UPLOADS_DIR="$UPLOADS_DIR"
 POSTGRES_DATA_DIR="$POSTGRES_DATA_DIR"
-N8N_DATA_DIR="$N8N_DATA_DIR"
-AI_AGENT_DIR="$AI_AGENT_DIR"
 DOCKER_DIR="$DOCKER_DIR"
 APP_PORT=$APP_PORT
 POSTGRES_PORT=$POSTGRES_PORT
@@ -283,12 +256,7 @@ ALLOWED_ORIGINS=$ALLOWED_ORIGINS
 ALLOW_INSECURE_LOCAL_HTTP=$ALLOW_INSECURE_LOCAL_HTTP
 COOKIE_SECURE=$COOKIE_SECURE
 TRUST_PROXY_HEADERS=$TRUST_PROXY_HEADERS
-AI_ENABLE_N8N=$AI_ENABLE_N8N
-N8N_WEBHOOK_URL=$N8N_WEBHOOK_URL
-N8N_PUBLIC_WEBHOOK_URL=$N8N_PUBLIC_WEBHOOK_URL
-N8N_API_SECRET=$N8N_API_SECRET
-N8N_WEBHOOK_TIMEOUT_MS=$N8N_WEBHOOK_TIMEOUT_MS
-N8N_WEBHOOK_RETRIES=$N8N_WEBHOOK_RETRIES
+UKPD_DEFAULT_PASSWORD=$UKPD_DEFAULT_PASSWORD
 
 POSTGRES_HOST=$POSTGRES_HOST
 POSTGRES_HOSTS=$POSTGRES_HOSTS

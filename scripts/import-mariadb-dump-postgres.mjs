@@ -138,8 +138,6 @@ async function finishSchema(client) {
     ["alamat", "id"],
     ["keluarga", "id"],
     ["pegawai", "id_pegawai"],
-    ["qna_category", "id"],
-    ["qna_item", "id"],
     ["riwayat_gaji_pokok", "id"],
     ["riwayat_hukuman_disiplin", "id"],
     ["riwayat_jabatan", "id"],

@@ -135,7 +135,7 @@ export default function PegawaiPage() {
   ];
 
   return (
-    <>
+    <div className="flex min-h-0 flex-col gap-3 lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden">
       <PageHeader
         title="Data Pegawai"
         description=""
@@ -177,12 +177,12 @@ export default function PegawaiPage() {
           </button>
         ) : null}
       />
-      <div className="mt-5">
-        {loading ? (
-          <div className="h-64 animate-pulse rounded-2xl bg-white" />
-        ) : errorMessage ? (
-          <ErrorState description={errorMessage} onRetry={() => setRefreshKey((value) => value + 1)} />
-        ) : (
+      {loading ? (
+        <div className="min-h-0 flex-1 animate-pulse rounded-lg bg-white" />
+      ) : errorMessage ? (
+        <ErrorState description={errorMessage} onRetry={() => setRefreshKey((value) => value + 1)} />
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
           <DataTable
             columns={columns}
             data={rows}
@@ -190,6 +190,8 @@ export default function PegawaiPage() {
             showNumber
             startNumber={(page - 1) * pageSize + 1}
             actionWidth={150}
+            fillHeight
+            compact
             actions={(item) => (
               <div className="flex items-center justify-end gap-1 sm:gap-2">
                 <Link className="rounded-lg p-2 text-dinkes-700 hover:bg-dinkes-50 focus-ring" href={`/pegawai/${item.id_pegawai}`} aria-label="Lihat profil" title="Lihat profil"><Eye className="h-4 w-4" /></Link>
@@ -198,29 +200,29 @@ export default function PegawaiPage() {
               </div>
             )}
           />
-        )}
-      </div>
-      <footer className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-600 shadow-etpp sm:flex-row sm:items-center sm:justify-between">
-        <span>Menampilkan {rows.length} dari {totalRows} pegawai</span>
-        <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <label className="flex items-center gap-2">
-            <span>Per halaman</span>
-            <select
-              className="input py-2"
-              value={pageSize}
-              onChange={(event) => {
-                setPageSize(Number(event.target.value));
-                setPage(1);
-              }}
-            >
-              {[10, 25, 50, 100].map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
-          </label>
-          <button className="btn-secondary py-2" disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Sebelumnya</button>
-          <span className="px-2">Hal {page} / {maxPage}</span>
-          <button className="btn-secondary py-2" disabled={page === maxPage} onClick={() => setPage((value) => Math.min(maxPage, value + 1))}>Berikutnya</button>
+          <footer className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <span>Menampilkan {rows.length} dari {totalRows} pegawai</span>
+            <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
+              <label className="flex items-center gap-2">
+                <span>Per halaman</span>
+                <select
+                  className="input w-24 py-2"
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value));
+                    setPage(1);
+                  }}
+                >
+                  {[10, 25, 50, 100].map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <button className="btn-secondary px-3 py-2" disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Sebelumnya</button>
+              <span className="min-w-[7rem] rounded-lg bg-slate-50 px-3 py-2 text-center font-bold text-slate-800">Hal {page} / {maxPage}</span>
+              <button className="btn-secondary px-3 py-2" disabled={page === maxPage} onClick={() => setPage((value) => Math.min(maxPage, value + 1))}>Berikutnya</button>
+            </div>
+          </footer>
         </div>
-      </footer>
+      )}
       <ConfirmDeleteModal
         open={Boolean(deleteTarget)}
         title="Hapus data pegawai?"
@@ -229,6 +231,6 @@ export default function PegawaiPage() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={removePegawai}
       />
-    </>
+    </div>
   );
 }

@@ -1,16 +1,11 @@
 import {
-  Bot,
-  BrainCircuit,
   BriefcaseBusiness,
   ClipboardList,
-  FileQuestion,
   FileSpreadsheet,
-  FileSearch,
   Home,
   LogOut,
-  Search,
+  Settings,
   UploadCloud,
-  UserCircle,
   UsersRound,
   ShieldCheck,
   Bell,
@@ -42,12 +37,8 @@ export const sidebarMenu = [
   },
   { label: "Import Excel Pegawai", href: "/import-pegawai", icon: FileSpreadsheet, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_UKPD] },
   { label: "Import DRH", href: "/import-drh", icon: UploadCloud, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_UKPD] },
-  { label: "Review AI Dokumen", href: "/ai-documents", icon: FileSearch, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
-  { label: "AI SI SDMK", href: "/ai-agent", icon: BrainCircuit, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
-  { label: "QnA Knowledge Base", href: "/admin/qna-knowledge-base", icon: FileQuestion, roles: [ROLES.SUPER_ADMIN] },
   { label: "Daftar Urut Kepangkatan", href: "/duk", icon: FileSpreadsheet, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
-  { label: "QnA Admin", href: "/qna-admin", icon: Bot, roles: [ROLES.SUPER_ADMIN] },
-  { label: "Profil Akun", href: "/profil", icon: UserCircle, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
+  { label: "Pengaturan", href: "/profil", icon: Settings, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   { label: "Logout", href: "/api/auth/logout", icon: LogOut, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD], action: "logout" }
 ];
 
@@ -64,7 +55,6 @@ export const desktopMenu = [
       { label: "Jabatan ORB", href: "/master-jabatan/orb", icon: ClipboardList, roles: [ROLES.SUPER_ADMIN] }
     ]
   },
-  { label: "Pencarian", href: "/pegawai", icon: Search, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   {
     label: "Import Data",
     icon: ShieldCheck,
@@ -74,9 +64,6 @@ export const desktopMenu = [
       { label: "Import DRH", href: "/import-drh", icon: UploadCloud, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_UKPD] }
     ]
   },
-  { label: "Review AI Dokumen", href: "/ai-documents", icon: FileSearch, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
-  { label: "AI SI SDMK", href: "/ai-agent", icon: BrainCircuit, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
-  { label: "QnA Knowledge Base", href: "/admin/qna-knowledge-base", icon: FileQuestion, roles: [ROLES.SUPER_ADMIN] },
   {
     label: "Usulan",
     icon: BriefcaseBusiness,
@@ -87,15 +74,14 @@ export const desktopMenu = [
     ]
   },
   { label: "Daftar Urut Kepangkatan", href: "/duk", icon: FileSpreadsheet, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
-  { label: "QnA Admin", href: "/qna-admin", icon: Bot, roles: [ROLES.SUPER_ADMIN] },
-  { label: "Profil Akun", href: "/profil", icon: UserCircle, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
+  { label: "Pengaturan", href: "/profil", icon: Settings, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   { label: "Logout", href: "/api/auth/logout", icon: LogOut, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD], action: "logout" }
 ];
 
 export const mobileBottomMenu = [
   { label: "Dashboard", href: "/dashboard", icon: Home, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   { label: "Pegawai", href: "/pegawai", icon: UsersRound, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
-  { label: "Cari", href: "/pegawai", icon: Search, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
+  { label: "DUK", href: "/duk", icon: FileSpreadsheet, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   { label: "Notifikasi", href: "/dashboard", icon: Bell, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] },
   { label: "Lainnya", href: "/profil", icon: MoreHorizontal, roles: [ROLES.SUPER_ADMIN, ROLES.ADMIN_WILAYAH, ROLES.ADMIN_UKPD] }
 ];

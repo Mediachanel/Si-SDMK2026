@@ -13,9 +13,6 @@ function parseJson(value) {
 function moduleFromAction(action, fallback = "") {
   if (fallback) return fallback;
   const prefix = String(action || "").split(".")[0];
-  if (prefix === "ai_document") return "ai_documents";
-  if (prefix === "ai_agent") return "ai_agent";
-  if (prefix === "chatbot") return "chatbot";
   if (prefix === "login" || prefix === "security") return "auth";
   return prefix || "system";
 }
@@ -58,23 +55,7 @@ export async function listAuditLogs(filters = {}) {
      ORDER BY created_at DESC
      LIMIT 300`
   ).catch(() => [[]]);
-  const [aiRows] = await pool.query(
-    `SELECT 'ai_agent' AS source, id, actor_id, actor_role, action, NULL AS entity_type, NULL AS entity_id,
-            metadata, created_at, NULL AS actor_username, tool_name, task_id, 'ai_agent' AS module
-     FROM ai_agent_audit_logs
-     ORDER BY created_at DESC
-     LIMIT 300`
-  ).catch(() => [[]]);
-  const [internalRows] = await pool.query(
-    `SELECT 'internal_chat' AS source, id, user_id AS actor_id, user_role AS actor_role, 'internal_chat.session' AS action,
-            'internal_chat_session' AS entity_type, id AS entity_id, '{}'::jsonb AS metadata, updated_at AS created_at,
-            username AS actor_username, NULL AS tool_name, NULL AS task_id, 'internal_chat' AS module
-     FROM internal_chat_sessions
-     ORDER BY updated_at DESC
-     LIMIT 100`
-  ).catch(() => [[]]);
-
-  return [...generalRows, ...aiRows, ...internalRows]
+  return generalRows
     .map(normalizeAuditLog)
     .filter((item) => matchesFilters(item, filters))
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))

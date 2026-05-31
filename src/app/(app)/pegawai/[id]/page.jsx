@@ -609,11 +609,30 @@ function PrintHeader() {
   );
 }
 
-function PrintPage({ children, breakBefore = false }) {
+function PrintFooter({ pegawai, computed }) {
+  const printedAt = new Date().toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  const name = fullNameWithTitleForPrint(pegawai) || computed?.nama || "Pegawai";
+
+  return (
+    <footer className="print-drh-footer">
+      <span>{printedAt}</span>
+      <span>Daftar Riwayat Hidup - {name}</span>
+    </footer>
+  );
+}
+
+function PrintPage({ children, breakBefore = false, pegawai, computed }) {
   return (
     <section className={`print-drh-page ${breakBefore ? "print-break-before" : ""}`}>
       <PrintHeader />
       {children}
+      <PrintFooter pegawai={pegawai} computed={computed} />
     </section>
   );
 }
@@ -834,7 +853,7 @@ function PrintProfileDocument({ pegawai, computed }) {
 
   return (
     <article className="print-profile" aria-label="Dokumen cetak profil pegawai">
-      <PrintPage>
+      <PrintPage pegawai={pegawai} computed={computed}>
         <PrintDataDiri pegawai={pegawai} computed={computed} />
         <PrintSection title="RIWAYAT PENDIDIKAN FORMAL">
           <PrintTable columns={pendidikanFormalPrintColumns} rows={computed.riwayatPendidikanFormal} />
@@ -847,7 +866,7 @@ function PrintProfileDocument({ pegawai, computed }) {
         </PrintSection>
       </PrintPage>
 
-      <PrintPage breakBefore>
+      <PrintPage breakBefore pegawai={pegawai} computed={computed}>
         <PrintSection title="RIWAYAT JABATAN STRUKTURAL">
           <PrintTable columns={jabatanPrintColumns} rows={structuralRows} />
         </PrintSection>
@@ -859,7 +878,7 @@ function PrintProfileDocument({ pegawai, computed }) {
         </PrintSection>
       </PrintPage>
 
-      <PrintPage breakBefore>
+      <PrintPage breakBefore pegawai={pegawai} computed={computed}>
         <PrintSection title="RIWAYAT GAJI POKOK">
           <PrintTable columns={gajiPrintColumns} rows={pegawai.riwayat_gaji_pokok} />
         </PrintSection>
@@ -877,7 +896,7 @@ function PrintProfileDocument({ pegawai, computed }) {
         </PrintSection>
       </PrintPage>
 
-      <PrintPage breakBefore>
+      <PrintPage breakBefore pegawai={pegawai} computed={computed}>
         <section className="print-drh-support">
           <h2>INFORMASI PENDUKUNG :</h2>
           <PrintSupportSection
@@ -1051,15 +1070,7 @@ export default function DetailPegawaiPage() {
   }, [computed, historyActivated, historyQuery, historyYear, pegawai]);
 
   function printProfile() {
-    const previousTitle = document.title;
-    document.title = `Daftar Riwayat Hidup - ${computed?.nama || "Pegawai"}`;
-    const restoreTitle = () => {
-      document.title = previousTitle;
-      window.removeEventListener("afterprint", restoreTitle);
-    };
-    window.addEventListener("afterprint", restoreTitle);
     window.print();
-    window.setTimeout(restoreTitle, 1000);
   }
 
   if (loading) {

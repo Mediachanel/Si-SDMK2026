@@ -305,21 +305,6 @@ function getPoolMap() {
   return globalThis.__sisdmkPostgresCompatPools;
 }
 
-function getAiReadonlyPoolMap() {
-  if (!globalThis.__sisdmkAiReadonlyPostgresCompatPools) {
-    globalThis.__sisdmkAiReadonlyPostgresCompatPools = new Map();
-  }
-  return globalThis.__sisdmkAiReadonlyPostgresCompatPools;
-}
-
-function aiQueryTimeoutMs() {
-  return numberOption(process.env.AI_QUERY_TIMEOUT, 10000, { min: 500, max: 60000 });
-}
-
-export function getAiReadonlyDbUser() {
-  return process.env.AI_POSTGRES_USER || "ai_readonly";
-}
-
 export function isClosedConnectionError(error) {
   const message = String(error?.message || "").toLowerCase();
   return message.includes("closed") || message.includes("terminated") || message.includes("connection");
@@ -332,16 +317,6 @@ export async function resetPostgresPools() {
   globalThis.__sisdmkPostgresCompatPool = null;
   globalThis.__sisdmkPostgresCompatHost = null;
   globalThis.__sisdmkPostgresCompatVerifiedAt = 0;
-  await Promise.all(entries.map(([, pool]) => pool.end().catch(() => {})));
-}
-
-export async function resetAiReadonlyPostgresPools() {
-  const pools = getAiReadonlyPoolMap();
-  const entries = [...pools.entries()];
-  pools.clear();
-  globalThis.__sisdmkAiReadonlyPostgresCompatPool = null;
-  globalThis.__sisdmkAiReadonlyPostgresCompatHost = null;
-  globalThis.__sisdmkAiReadonlyPostgresCompatVerifiedAt = 0;
   await Promise.all(entries.map(([, pool]) => pool.end().catch(() => {})));
 }
 
@@ -398,69 +373,4 @@ export async function getConnectedPool() {
   }
 
   throw new Error(`Koneksi PostgreSQL gagal. Percobaan: ${errors.slice(-5).join(" | ") || "tidak ada host yang dicoba"}`);
-}
-
-export async function getConnectedAiReadonlyPool() {
-  const candidates = getPostgresCandidates();
-  const databases = getPostgresDatabaseCandidates();
-  const pools = getAiReadonlyPoolMap();
-  const errors = [];
-  const selectedPool = globalThis.__sisdmkAiReadonlyPostgresCompatPool;
-  const selectedHost = globalThis.__sisdmkAiReadonlyPostgresCompatHost;
-  const verifyIntervalMs = numberOption(process.env.POSTGRES_POOL_VERIFY_INTERVAL_MS, 15000, { min: 0, max: 300000 });
-  const lastVerifiedAt = Number(globalThis.__sisdmkAiReadonlyPostgresCompatVerifiedAt || 0);
-  const user = getAiReadonlyDbUser();
-  const password = process.env.AI_POSTGRES_PASSWORD !== undefined ? process.env.AI_POSTGRES_PASSWORD : "";
-
-  if (selectedPool && selectedHost) {
-    if (verifyIntervalMs > 0 && Date.now() - lastVerifiedAt < verifyIntervalMs) {
-      return selectedPool;
-    }
-
-    try {
-      await selectedPool.query("SELECT 1");
-      globalThis.__sisdmkAiReadonlyPostgresCompatVerifiedAt = Date.now();
-      return selectedPool;
-    } catch (error) {
-      errors.push(`host=${selectedHost} user=${user} -> ${error.message}`);
-      pools.delete(selectedHost);
-      globalThis.__sisdmkAiReadonlyPostgresCompatPool = null;
-      globalThis.__sisdmkAiReadonlyPostgresCompatHost = null;
-      globalThis.__sisdmkAiReadonlyPostgresCompatVerifiedAt = 0;
-      await selectedPool.end().catch(() => {});
-    }
-  }
-
-  for (const candidate of candidates) {
-    for (const database of databases) {
-      const key = `${candidate.host}:${candidate.port}/${database}/${user}`;
-      let pool = pools.get(key);
-      if (!pool) {
-        pool = createPool({
-          ...candidate,
-          database,
-          user,
-          password,
-          applicationName: "sisdmk2-ai-readonly",
-          statementTimeoutMillis: aiQueryTimeoutMs(),
-          queryTimeoutMillis: aiQueryTimeoutMs()
-        });
-        pools.set(key, pool);
-      }
-
-      try {
-        await pool.query("SELECT 1");
-        globalThis.__sisdmkAiReadonlyPostgresCompatPool = pool;
-        globalThis.__sisdmkAiReadonlyPostgresCompatHost = key;
-        globalThis.__sisdmkAiReadonlyPostgresCompatVerifiedAt = Date.now();
-        return pool;
-      } catch (error) {
-        errors.push(`host=${key} -> ${error.message}`);
-        pools.delete(key);
-        await pool.end().catch(() => {});
-      }
-    }
-  }
-
-  throw new Error(`Koneksi PostgreSQL AI readonly gagal. Pastikan user ${user} tersedia. Percobaan: ${errors.slice(-5).join(" | ") || "tidak ada host yang dicoba"}`);
 }

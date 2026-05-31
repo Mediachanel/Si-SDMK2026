@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Eye,
@@ -57,9 +57,18 @@ const emptyForm = {
   nama_pegawai: "",
   pangkat_golongan: "",
   nama_ukpd: "",
+  ukpd_tujuan: "",
   jabatan: "",
   jabatan_baru: "",
   angka_kredit: "",
+  abk_j_lama: "",
+  bezetting_j_lama: "",
+  nonasn_bezetting_lama: "",
+  nonasn_abk_lama: "",
+  abk_j_baru: "",
+  bezetting_j_baru: "",
+  nonasn_bezetting_baru: "",
+  nonasn_abk_baru: "",
   nomor_surat: "",
   tanggal_surat: "",
   hal: "",
@@ -120,6 +129,10 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
+function normalizeNumberInput(value) {
+  return value === "" || value === null || value === undefined ? "" : String(value);
+}
+
 function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -132,7 +145,15 @@ function buildFormFromItem(item, fallbackUkpd = "") {
     ...emptyForm,
     ...item,
     nama_ukpd: item?.nama_ukpd || fallbackUkpd || "",
-    angka_kredit: item?.angka_kredit === null || item?.angka_kredit === undefined ? "" : String(item.angka_kredit)
+    angka_kredit: normalizeNumberInput(item?.angka_kredit),
+    abk_j_lama: normalizeNumberInput(item?.abk_j_lama),
+    bezetting_j_lama: normalizeNumberInput(item?.bezetting_j_lama),
+    nonasn_bezetting_lama: normalizeNumberInput(item?.nonasn_bezetting_lama),
+    nonasn_abk_lama: normalizeNumberInput(item?.nonasn_abk_lama),
+    abk_j_baru: normalizeNumberInput(item?.abk_j_baru),
+    bezetting_j_baru: normalizeNumberInput(item?.bezetting_j_baru),
+    nonasn_bezetting_baru: normalizeNumberInput(item?.nonasn_bezetting_baru),
+    nonasn_abk_baru: normalizeNumberInput(item?.nonasn_abk_baru)
   };
 }
 
@@ -389,6 +410,7 @@ function ActionPanel({
     );
   }
 
+  const ukpdOptions = optionsWithCurrent(referenceOptions?.ukpdOptions || [], form.ukpd_tujuan);
   const jabatanOptions = optionsWithCurrent([
     ...(referenceOptions?.jabatanMenpanOptions || []),
     ...(referenceOptions?.jabatanOrbOptions || [])
@@ -442,6 +464,15 @@ function ActionPanel({
 
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2">
+            <span className="label">UKPD Tujuan</span>
+            <select className="input" value={form.ukpd_tujuan} onChange={(event) => onFormChange("ukpd_tujuan", event.target.value)}>
+              <option value="">Pilih UKPD tujuan</option>
+              {ukpdOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-2">
             <span className="label">Jabatan Baru / Tujuan</span>
             <select className="input" value={form.jabatan_baru} onChange={(event) => onFormChange("jabatan_baru", event.target.value)}>
               <option value="">Pilih jabatan baru</option>
@@ -467,6 +498,30 @@ function ActionPanel({
                 value={form[name]}
                 onChange={(event) => onFormChange(name, event.target.value)}
               />
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <FileCheck2 className="h-4 w-4 text-slate-500" />
+          <h3 className="text-sm font-semibold text-slate-800">Ringkasan ABK & Bezetting</h3>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {[
+            ["abk_j_lama", "ABK Jabatan Saat Ini"],
+            ["bezetting_j_lama", "Bezetting Jabatan Saat Ini"],
+            ["nonasn_bezetting_lama", "Non ASN Saat Ini"],
+            ["nonasn_abk_lama", "ABK Non ASN Saat Ini"],
+            ["abk_j_baru", "ABK Jabatan Tujuan"],
+            ["bezetting_j_baru", "Bezetting Jabatan Tujuan"],
+            ["nonasn_bezetting_baru", "Non ASN Tujuan"],
+            ["nonasn_abk_baru", "ABK Non ASN Tujuan"]
+          ].map(([name, label]) => (
+            <label key={name} className="space-y-2">
+              <span className="label">{label}</span>
+              <input className="input" type="number" min="0" value={form[name]} onChange={(event) => onFormChange(name, event.target.value)} />
             </label>
           ))}
         </div>
@@ -550,7 +605,6 @@ export default function UsulanPutusJfPage() {
   const [panelMode, setPanelMode] = useState(null);
   const [activeId, setActiveId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
-  const detailSectionRef = useRef(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [stageFilter, setStageFilter] = useState("");
   const [loading, setLoading] = useState(true);
@@ -709,9 +763,6 @@ export default function UsulanPutusJfPage() {
 
   function openDetail(item) {
     setSelectedId(item.id);
-    window.setTimeout(() => {
-      detailSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
   }
 
   function updateRow(updatedItem) {
@@ -799,7 +850,15 @@ export default function UsulanPutusJfPage() {
     try {
       const payloadBody = {
         ...form,
-        angka_kredit: form.angka_kredit === "" ? null : Number(form.angka_kredit)
+        angka_kredit: form.angka_kredit === "" ? null : Number(form.angka_kredit),
+        abk_j_lama: form.abk_j_lama === "" ? null : Number(form.abk_j_lama),
+        bezetting_j_lama: form.bezetting_j_lama === "" ? null : Number(form.bezetting_j_lama),
+        nonasn_bezetting_lama: form.nonasn_bezetting_lama === "" ? null : Number(form.nonasn_bezetting_lama),
+        nonasn_abk_lama: form.nonasn_abk_lama === "" ? null : Number(form.nonasn_abk_lama),
+        abk_j_baru: form.abk_j_baru === "" ? null : Number(form.abk_j_baru),
+        bezetting_j_baru: form.bezetting_j_baru === "" ? null : Number(form.bezetting_j_baru),
+        nonasn_bezetting_baru: form.nonasn_bezetting_baru === "" ? null : Number(form.nonasn_bezetting_baru),
+        nonasn_abk_baru: form.nonasn_abk_baru === "" ? null : Number(form.nonasn_abk_baru)
       };
       const response = await fetch("/api/usulan/putus-jf", {
         method: panelMode === "edit" ? "PUT" : "POST",
@@ -1041,8 +1100,14 @@ export default function UsulanPutusJfPage() {
           )}
 
           {selected ? (
-            <section ref={detailSectionRef} className="surface p-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div
+              className="fixed inset-0 z-50 grid items-end bg-slate-950/40 px-3 pb-3 sm:place-items-center sm:p-4"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setSelectedId(null);
+              }}
+            >
+              <article className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-lg bg-white p-5 shadow-2xl sm:p-6" role="dialog" aria-modal="true" aria-label="Detail Usulan Putus JF">
+              <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500">Detail Usulan Putus JF</p>
                   <h2 className="mt-1 text-xl font-bold text-slate-950">{selected.nama_pegawai || "-"}</h2>
@@ -1059,6 +1124,9 @@ export default function UsulanPutusJfPage() {
                   <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                     Tahap {selected._flow.step}
                   </span>
+                  <button className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 focus-ring" type="button" onClick={() => setSelectedId(null)} aria-label="Tutup popup">
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
 
@@ -1071,6 +1139,17 @@ export default function UsulanPutusJfPage() {
                     </div>
                     <p className="text-sm leading-6 text-slate-600">{selected._flow.nextAction}</p>
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {[
+                        ["Jabatan Saat Ini", selected.jabatan],
+                        ["Jabatan Tujuan", selected.jabatan_baru],
+                        ["UKPD Saat Ini", selected.nama_ukpd],
+                        ["UKPD Tujuan", selected.ukpd_tujuan || selected.nama_ukpd_tujuan || selected.ukpd_baru]
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-xl bg-slate-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-slate-900">{value || "-"}</p>
+                        </div>
+                      ))}
                       <div className="rounded-xl bg-slate-50 p-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Angka Kredit</p>
                         <p className="mt-1 text-sm font-medium text-slate-900">{selected.angka_kredit ?? "-"}</p>
@@ -1099,6 +1178,41 @@ export default function UsulanPutusJfPage() {
                       ))}
                     </div>
                   </div>
+
+                  {[
+                    selected.abk_j_lama,
+                    selected.bezetting_j_lama,
+                    selected.nonasn_bezetting_lama,
+                    selected.nonasn_abk_lama,
+                    selected.abk_j_baru,
+                    selected.bezetting_j_baru,
+                    selected.nonasn_bezetting_baru,
+                    selected.nonasn_abk_baru
+                  ].some((value) => value !== undefined && value !== null && value !== "") ? (
+                    <div className="rounded-2xl border border-slate-200 p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-dinkes-700" />
+                        <h3 className="text-sm font-semibold text-slate-900">ABK & Bezetting</h3>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {[
+                          ["ABK jabatan saat ini", selected.abk_j_lama],
+                          ["Bezetting jabatan saat ini", selected.bezetting_j_lama],
+                          ["Non ASN saat ini", selected.nonasn_bezetting_lama],
+                          ["ABK Non ASN saat ini", selected.nonasn_abk_lama],
+                          ["ABK jabatan tujuan", selected.abk_j_baru],
+                          ["Bezetting jabatan tujuan", selected.bezetting_j_baru],
+                          ["Non ASN tujuan", selected.nonasn_bezetting_baru],
+                          ["ABK Non ASN tujuan", selected.nonasn_abk_baru]
+                        ].map(([label, value]) => (
+                          <div key={label} className="rounded-xl bg-slate-50 px-3 py-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+                            <p className="mt-1 text-sm font-medium text-slate-900">{value ?? "-"}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="space-y-4">
@@ -1164,7 +1278,8 @@ export default function UsulanPutusJfPage() {
                   </div>
                 </div>
               </div>
-            </section>
+              </article>
+            </div>
           ) : null}
         </div>
       </section>

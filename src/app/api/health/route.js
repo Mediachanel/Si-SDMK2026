@@ -14,17 +14,6 @@ async function writableDirectory(path) {
   }
 }
 
-function n8nStatus() {
-  return {
-    enabled: String(process.env.AI_ENABLE_N8N || "").toLowerCase() === "true",
-    internal_webhook_configured: Boolean(process.env.N8N_WEBHOOK_URL),
-    public_webhook_configured: Boolean(process.env.N8N_PUBLIC_WEBHOOK_URL),
-    secret_configured: Boolean(process.env.N8N_API_SECRET),
-    timeout_ms: Number(process.env.N8N_WEBHOOK_TIMEOUT_MS || 20000),
-    retries: Number(process.env.N8N_WEBHOOK_RETRIES || 1)
-  };
-}
-
 export async function GET() {
   const startedAt = Date.now();
   const checks = {
@@ -32,8 +21,7 @@ export async function GET() {
     storage: {
       local_storage_writable: await writableDirectory(process.env.STORAGE_LOCAL_PATH || "/app/storage"),
       next_cache_writable: await writableDirectory("/app/.next/cache")
-    },
-    n8n: n8nStatus()
+    }
   };
 
   let status = 200;

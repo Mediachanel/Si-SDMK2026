@@ -72,7 +72,7 @@ function cleanNrk(value) {
 
 function LoadingRows() {
   return (
-    <section className="surface overflow-hidden">
+    <section className="surface min-h-0 flex-1 overflow-hidden">
       <div className="border-b border-slate-200 bg-white px-4 py-3">
         <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
       </div>
@@ -435,7 +435,7 @@ export default function PejabatPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="flex min-h-0 flex-col gap-3 lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden">
       <PageHeader
         title="Data Pejabat"
         breadcrumbs={[{ label: "Data Pejabat" }]}
@@ -453,40 +453,40 @@ export default function PejabatPage() {
         )}
       />
 
-      <section className="surface flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="surface flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid w-full gap-3 sm:grid-cols-3">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-dinkes-50 text-dinkes-800 ring-1 ring-dinkes-100">
-              <BriefcaseBusiness className="h-5 w-5" aria-hidden="true" />
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-dinkes-50 text-dinkes-800 ring-1 ring-dinkes-100">
+              <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
             </span>
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Total Pejabat</p>
-              <p className="text-2xl font-extrabold text-slate-950">{formatNumber(totalRows)}</p>
+              <p className="text-xl font-extrabold text-slate-950">{formatNumber(totalRows)}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-700 ring-1 ring-amber-100">
-              <ClipboardCheck className="h-5 w-5" aria-hidden="true" />
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+              <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
             </span>
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-slate-500">PLT Aktif</p>
-              <p className="text-2xl font-extrabold text-slate-950">{formatNumber(pltKpi.PLT)}</p>
+              <p className="text-xl font-extrabold text-slate-950">{formatNumber(pltKpi.PLT)}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-700 ring-1 ring-sky-100">
-              <UserCheck className="h-5 w-5" aria-hidden="true" />
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+              <UserCheck className="h-4 w-4" aria-hidden="true" />
             </span>
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-slate-500">PLH Aktif</p>
-              <p className="text-2xl font-extrabold text-slate-950">{formatNumber(pltKpi.PLH)}</p>
+              <p className="text-xl font-extrabold text-slate-950">{formatNumber(pltKpi.PLH)}</p>
             </div>
           </div>
         </div>
       </section>
 
       <section className="overflow-hidden rounded-lg border border-dinkes-900/15 bg-white shadow-sm">
-        <nav className="flex gap-1 overflow-x-auto bg-dinkes-800 px-3 py-2" aria-label="Jenis data pejabat">
+        <nav className="flex gap-1 overflow-x-auto bg-dinkes-800 px-3 py-1.5" aria-label="Jenis data pejabat">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
@@ -506,7 +506,7 @@ export default function PejabatPage() {
       </section>
 
       {activeTab === "existing" ? (
-      <section className="surface p-4">
+      <section className="surface p-3">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(180px,1fr))_auto] xl:items-end">
           <label className="grid gap-2">
             <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Filter Wilayah</span>
@@ -584,8 +584,8 @@ export default function PejabatPage() {
       ) : null}
 
       {activeTab !== "existing" ? (
-        <section className="surface p-4">
-          <div className="grid gap-4">
+        <section className="surface p-3">
+          <div className="grid gap-3">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <label className="grid gap-2">
                 <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Wilayah</span>
@@ -688,7 +688,7 @@ export default function PejabatPage() {
       ) : null}
 
       {activeTab === "existing" ? (
-        <>
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
           {loading ? <LoadingRows /> : null}
           {!loading && errorMessage ? (
             <ErrorState description={errorMessage} onRetry={() => setRefreshKey((value) => value + 1)} />
@@ -701,6 +701,8 @@ export default function PejabatPage() {
                 rowKey="id_pegawai"
                 showNumber
                 startNumber={(page - 1) * pageSize + 1}
+                fillHeight
+                compact
               />
               <footer className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm md:flex-row md:items-center md:justify-between">
                 <div>
@@ -728,12 +730,12 @@ export default function PejabatPage() {
               </footer>
             </>
           ) : null}
-        </>
+        </div>
       ) : (
-        <>
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
           {!pltModalOpen && pltErrorMessage ? <ErrorState description={pltErrorMessage} onRetry={() => setPltRefreshKey((value) => value + 1)} /> : null}
           {pltLoading ? (
-            <section className="surface h-36 animate-pulse" />
+            <section className="surface min-h-0 flex-1 animate-pulse" />
           ) : (
             <DataTable
               columns={pltColumns}
@@ -742,6 +744,7 @@ export default function PejabatPage() {
               showNumber
               actionWidth={86}
               fitToWidth
+              fillHeight
               compact
               actions={(item) => (
                 <div className="flex items-center justify-center gap-1">
@@ -755,7 +758,7 @@ export default function PejabatPage() {
               )}
             />
           )}
-        </>
+        </div>
       )}
 
       {pltModalOpen ? (

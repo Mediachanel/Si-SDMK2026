@@ -153,15 +153,15 @@ function PangkatBadge({ value }) {
 function DukSummary({ total, filtered, topPangkat }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
-      <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <article className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Total PNS</p>
-        <p className="mt-1 text-2xl font-extrabold text-slate-950">{formatNumber(total)}</p>
+        <p className="mt-1 text-xl font-extrabold text-slate-950">{formatNumber(total)}</p>
       </article>
-      <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <article className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Hasil Tampil</p>
-        <p className="mt-1 text-2xl font-extrabold text-slate-950">{formatNumber(filtered)}</p>
+        <p className="mt-1 text-xl font-extrabold text-slate-950">{formatNumber(filtered)}</p>
       </article>
-      <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <article className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Pangkat Tertinggi</p>
         <p className="mt-1 truncate text-base font-extrabold text-slate-950">{topPangkat || "-"}</p>
       </article>
@@ -171,12 +171,12 @@ function DukSummary({ total, filtered, topPangkat }) {
 
 function DukFilters({ search, setSearch, pangkat, setPangkat, jabatan, setJabatan, ukpd, setUkpd, pangkatOptions, jabatanOptions, ukpdOptions, hasActiveFilters, onReset }) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
       <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-slate-700">
         <SlidersHorizontal className="h-4 w-4" />
         Filter DUK
       </div>
-      <div className="grid gap-3 lg:grid-cols-[minmax(280px,1fr)_200px_minmax(220px,360px)_minmax(220px,360px)_auto]">
+      <div className="grid gap-2 lg:grid-cols-[minmax(240px,1fr)_180px_minmax(190px,280px)_minmax(190px,280px)_auto]">
         <label className="relative">
           <Search className="pointer-events-none absolute left-3 top-3 h-5 w-5 text-slate-400" />
           <input
@@ -210,7 +210,7 @@ function DukFilters({ search, setSearch, pangkat, setPangkat, jabatan, setJabata
 
 function DukTable({ rows, startNumber }) {
   return (
-    <section className="surface overflow-hidden">
+    <section className="surface flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="flex flex-col gap-1 border-b border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-extrabold text-slate-900">Ranking DUK Pegawai</h2>
@@ -263,17 +263,17 @@ function DukTable({ rows, startNumber }) {
           );
         })}
       </div>
-      <div className="table-scroll hidden md:block">
-        <table className="w-full min-w-[1570px] table-fixed border-collapse">
+      <div className="table-scroll hidden min-h-0 flex-1 md:block">
+        <table className="w-full min-w-[1320px] table-fixed border-collapse">
           <colgroup>
             <col className="w-[72px]" />
-            <col className="w-[280px]" />
-            <col className="w-[200px]" />
-            <col className="w-[140px]" />
-            <col className="w-[280px]" />
+            <col className="w-[250px]" />
+            <col className="w-[180px]" />
+            <col className="w-[130px]" />
+            <col className="w-[250px]" />
+            <col className="w-[190px]" />
             <col className="w-[220px]" />
-            <col className="w-[260px]" />
-            <col className="w-[116px]" />
+            <col className="w-[100px]" />
           </colgroup>
           <thead>
             <tr>
@@ -346,17 +346,18 @@ function Pagination({ page, setPage, pageSize, setPageSize, total }) {
 
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm md:flex-row md:items-center md:justify-between">
-      <div>
+      <div className="font-medium">
         Menampilkan <span className="font-bold text-slate-900">{formatNumber(start)}-{formatNumber(end)}</span> dari <span className="font-bold text-slate-900">{formatNumber(total)}</span> pegawai.
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Per halaman</span>
         <select className="input w-24 py-2" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}>
           {PAGE_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
         </select>
         <button className="btn-secondary px-3 py-2" type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page <= 1}>
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="min-w-24 text-center font-bold text-slate-800">Hal {page} / {totalPages}</span>
+        <span className="min-w-[7rem] rounded-lg bg-slate-50 px-3 py-2 text-center font-bold text-slate-800">Hal {page} / {totalPages}</span>
         <button className="btn-secondary px-3 py-2" type="button" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={page >= totalPages}>
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -375,7 +376,7 @@ export default function DukPage() {
   const [jabatan, setJabatan] = useState("");
   const [ukpd, setUkpd] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     let active = true;
@@ -458,7 +459,7 @@ export default function DukPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="flex min-h-0 flex-col gap-3 lg:h-[calc(100vh-5.5rem)] lg:overflow-hidden">
       <PageHeader
         title="Daftar Urut Kepangkatan"
         description="Urutan berdasarkan pangkat tertinggi, TMT pangkat terlama, lalu pendidikan tertinggi."
@@ -490,14 +491,14 @@ export default function DukPage() {
       />
 
       {loading ? (
-        <div className="h-80 animate-pulse rounded-lg bg-white" />
+        <div className="min-h-0 flex-1 animate-pulse rounded-lg bg-white" />
       ) : errorMessage ? (
         <ErrorState description={errorMessage} onRetry={() => setRefreshKey((value) => value + 1)} />
       ) : (
-        <>
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
           <DukTable rows={paginatedRows} startNumber={(safePage - 1) * pageSize + 1} />
           <Pagination page={safePage} setPage={setPage} pageSize={pageSize} setPageSize={setPageSize} total={filtered.length} />
-        </>
+        </div>
       )}
     </div>
   );

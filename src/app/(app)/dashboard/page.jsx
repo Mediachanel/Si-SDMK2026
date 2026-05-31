@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Component, Fragment, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { BarChart3, BriefcaseMedical, Building2, ChevronDown, ChevronRight, Download, GraduationCap, Home, MapPinned, Network, PieChart, Search, ShieldCheck, SlidersHorizontal, UserRoundCheck, UsersRound } from "lucide-react";
@@ -14,6 +14,47 @@ const DashboardChartCard = dynamic(() => import("@/components/charts/DashboardCh
   ssr: false,
   loading: () => <div className="h-56 animate-pulse rounded-lg border border-slate-200 bg-white" />
 });
+
+class DashboardErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error("Dashboard section crashed", error, info);
+  }
+
+  componentDidUpdate(previousProps) {
+    if (previousProps.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+
+    return (
+      <section className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+        <p className="font-bold">{this.props.title || "Bagian dashboard gagal dimuat."}</p>
+        <p className="mt-1">
+          {this.state.error?.message || "Terjadi kesalahan pada tampilan dashboard."}
+        </p>
+        <button
+          className="mt-3 rounded-md border border-rose-300 bg-white px-3 py-1.5 text-xs font-bold text-rose-700"
+          onClick={() => this.setState({ error: null })}
+          type="button"
+        >
+          Coba muat ulang bagian ini
+        </button>
+      </section>
+    );
+  }
+}
 
 const analyticsTabs = [
   { id: "ukpd", label: "Daftar UKPD" },
@@ -55,6 +96,15 @@ function formatPercent(value, total) {
   })}%`;
 }
 
+function safeText(value, fallback = "Tidak Diketahui") {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function compareText(a, b, locale = "id") {
+  return safeText(a).localeCompare(safeText(b), locale);
+}
+
 function downloadCsv(filename, headers, rows) {
   const content = [
     headers.map((header) => escapeCsv(header)).join(","),
@@ -74,7 +124,7 @@ function downloadCsv(filename, headers, rows) {
 function buildPivotAggregates(rows, labelKey) {
   const map = new Map();
   for (const row of rows) {
-    const label = row[labelKey] || "Tidak Diketahui";
+    const label = safeText(row[labelKey]);
     if (!map.has(label)) {
       map.set(label, {
         label,
@@ -95,7 +145,7 @@ function buildPivotAggregates(rows, labelKey) {
     if (row.jenis_pegawai === "NON PNS") item.nonPns += jumlah;
     if (row.jenis_pegawai === "PJLP") item.pjlp += jumlah;
   }
-  return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+  return [...map.values()].sort((a, b) => compareText(a.label, b.label));
 }
 
 function CountPill({ value }) {
@@ -413,15 +463,15 @@ function UkpdDrillPanel({ query, wilayahFilter = "all", ukpdFilter = "all" }) {
   const groupedTree = useMemo(() => {
     const groups = new Map();
     for (const ukpd of tree) {
-      const wilayah = ukpd.wilayah || "Tidak Diketahui";
+      const wilayah = safeText(ukpd.wilayah);
       if (!groups.has(wilayah)) groups.set(wilayah, []);
       groups.get(wilayah).push(ukpd);
     }
     return [...groups.entries()]
-      .sort(([a], [b]) => a.localeCompare(b, "id"))
+      .sort(([a], [b]) => compareText(a, b))
       .map(([wilayah, items]) => [
         wilayah,
-        items.sort((a, b) => a.label.localeCompare(b.label, "id"))
+        items.sort((a, b) => compareText(a.label, b.label))
       ]);
   }, [tree]);
 
@@ -760,13 +810,13 @@ function DashboardAnalyticsPanel({
     if (activeTab === "ukpd") {
       const grouped = new Map();
       for (const row of rows) {
-        const wilayah = row.wilayah || "Tidak Diketahui";
+        const wilayah = safeText(row.wilayah);
         if (!grouped.has(wilayah)) grouped.set(wilayah, []);
         grouped.get(wilayah).push(row);
       }
       const result = [];
-      for (const [wilayah, items] of [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-        const sortedItems = items.sort((a, b) => a.nama_ukpd.localeCompare(b.nama_ukpd));
+      for (const [wilayah, items] of [...grouped.entries()].sort(([a], [b]) => compareText(a, b))) {
+        const sortedItems = items.sort((a, b) => compareText(a.nama_ukpd, b.nama_ukpd));
         sortedItems.forEach((item, index) => {
           const pnsCpns = (item.byJenisPegawai?.PNS || 0) + (item.byJenisPegawai?.CPNS || 0);
           result.push([
@@ -1315,6 +1365,20 @@ export default function DashboardPage() {
     await loadDashboardMenus(dashboardStatus, dashboardWilayah, nextUkpd);
   }
 
+  const dashboardChartResetKey = [
+    dashboardMenu,
+    dashboardStatus,
+    dashboardWilayah,
+    dashboardUkpd,
+    refreshKey
+  ].join("|");
+  const analyticsResetKey = [
+    analyticsWilayah,
+    analyticsUkpd,
+    Boolean(analytics),
+    refreshKey
+  ].join("|");
+
   return (
     <>
       <header className="mb-3 flex flex-col gap-1 border-b border-slate-200 pb-2 lg:flex-row lg:items-end lg:justify-between">
@@ -1333,24 +1397,26 @@ export default function DashboardPage() {
         <KpiCard title="PJLP" value={data.summary.pjlp} percentage={formatPercent(data.summary.pjlp, totalPegawai)} icon={UsersRound} />
       </section>
 
-      <DashboardMenuCharts
-        menus={data.dashboardMenus || {}}
-        menusByStatus={data.dashboardMenusByStatus || {}}
-        statusOptions={data.dashboardMenuStatusOptions || []}
-        activeStatus={dashboardStatus}
-        onStatusChange={handleDashboardStatusChange}
-        wilayahOptions={data.dashboardMenuWilayahOptions || []}
-        activeWilayah={dashboardWilayah}
-        onWilayahChange={handleDashboardWilayahChange}
-        ukpdOptions={data.dashboardMenuUkpdOptions || []}
-        activeUkpd={dashboardUkpd}
-        onUkpdChange={handleDashboardUkpdChange}
-        statusLoading={dashboardStatusLoading}
-        wilayahLoading={dashboardStatusLoading}
-        ukpdLoading={dashboardStatusLoading}
-        activeMenu={dashboardMenu}
-        onMenuChange={setDashboardMenu}
-      />
+      <DashboardErrorBoundary resetKey={dashboardChartResetKey} title="Grafik dashboard gagal dimuat.">
+        <DashboardMenuCharts
+          menus={data.dashboardMenus || {}}
+          menusByStatus={data.dashboardMenusByStatus || {}}
+          statusOptions={data.dashboardMenuStatusOptions || []}
+          activeStatus={dashboardStatus}
+          onStatusChange={handleDashboardStatusChange}
+          wilayahOptions={data.dashboardMenuWilayahOptions || []}
+          activeWilayah={dashboardWilayah}
+          onWilayahChange={handleDashboardWilayahChange}
+          ukpdOptions={data.dashboardMenuUkpdOptions || []}
+          activeUkpd={dashboardUkpd}
+          onUkpdChange={handleDashboardUkpdChange}
+          statusLoading={dashboardStatusLoading}
+          wilayahLoading={dashboardStatusLoading}
+          ukpdLoading={dashboardStatusLoading}
+          activeMenu={dashboardMenu}
+          onMenuChange={setDashboardMenu}
+        />
+      </DashboardErrorBoundary>
       {dashboardStatusError ? (
         <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert">
           {dashboardStatusError}
@@ -1358,14 +1424,16 @@ export default function DashboardPage() {
       ) : null}
 
       {analytics ? (
-        <DashboardAnalyticsPanel
-          analytics={analytics}
-          activeWilayah={analyticsWilayah}
-          activeUkpd={analyticsUkpd}
-          onWilayahChange={handleAnalyticsWilayahChange}
-          onUkpdChange={handleAnalyticsUkpdChange}
-          filterLoading={analyticsLoading}
-        />
+        <DashboardErrorBoundary resetKey={analyticsResetKey} title="Analitik detail gagal dimuat.">
+          <DashboardAnalyticsPanel
+            analytics={analytics}
+            activeWilayah={analyticsWilayah}
+            activeUkpd={analyticsUkpd}
+            onWilayahChange={handleAnalyticsWilayahChange}
+            onUkpdChange={handleAnalyticsUkpdChange}
+            filterLoading={analyticsLoading}
+          />
+        </DashboardErrorBoundary>
       ) : (
         <section className="surface mt-4 p-4">
           <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

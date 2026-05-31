@@ -36,21 +36,10 @@ export function inspectContentSafety(value, { allowPersonalData = false } = {}) 
   if (!allowPersonalData && PERSONAL_DATA_PATTERNS.some((pattern) => pattern.test(text))) {
     return {
       allowed: false,
-      reason: "Prompt mengandung data pribadi. Masking atau review admin diperlukan sebelum dikirim ke AI.",
+      reason: "Payload mengandung data pribadi. Masking atau review admin diperlukan sebelum diproses.",
       category: "personal_data"
     };
   }
 
   return { allowed: true, reason: "", category: "" };
-}
-
-export function assertOpenAiSafe(value, options) {
-  const result = inspectContentSafety(value, options);
-  if (!result.allowed) {
-    const error = new Error(result.reason);
-    error.code = "CONTENT_SAFETY_BLOCKED";
-    error.category = result.category;
-    throw error;
-  }
-  return result;
 }

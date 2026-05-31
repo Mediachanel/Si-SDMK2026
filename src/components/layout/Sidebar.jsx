@@ -20,7 +20,7 @@ export default function Sidebar({ user, collapsed, onToggle }) {
   const menu = filterDesktopMenuByRole(user?.role);
 
   return (
-    <aside className={`hidden bg-dinkes-800 text-white transition-[width] duration-200 print:hidden md:fixed md:inset-y-0 md:z-40 md:flex md:w-16 md:flex-col ${collapsed ? "lg:w-16" : "lg:w-[260px]"}`}>
+    <aside className={`hidden bg-dinkes-800 text-white transition-[width] duration-200 print:hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:flex-col ${collapsed ? "lg:w-16" : "lg:w-[260px]"}`}>
       <header className={`flex min-h-24 items-center gap-3 px-4 ${collapsed ? "lg:justify-center lg:px-2" : ""}`}>
         <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden bg-white/95 p-1 ring-1 ring-white/20">
           <Image src={dinkesLogo} alt="Logo Dinas Kesehatan DKI Jakarta" className="h-full w-full object-contain" priority />

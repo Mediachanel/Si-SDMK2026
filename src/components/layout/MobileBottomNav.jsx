@@ -9,7 +9,7 @@ export default function MobileBottomNav({ user }) {
   const menu = filterMobileBottomMenuByRole(user?.role);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_20px_rgba(15,23,42,0.08)] backdrop-blur md:hidden print:hidden" aria-label="Navigasi bawah">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_20px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden print:hidden" aria-label="Navigasi bawah">
       <div className="grid grid-cols-5 gap-1">
         {menu.map((item) => {
           const Icon = item.icon;

@@ -1,6 +1,6 @@
 import EmptyState from "@/components/ui/EmptyState";
 
-export default function DataTable({ columns, data, rowKey = "id", actions, actionWidth = 260, fitToWidth = false, compact = false, startNumber = 1, showNumber = false }) {
+export default function DataTable({ columns, data, rowKey = "id", actions, actionWidth = 260, fitToWidth = false, compact = false, fillHeight = false, startNumber = 1, showNumber = false }) {
   if (!data?.length) return <EmptyState />;
 
   const numberWidth = 64;
@@ -11,7 +11,7 @@ export default function DataTable({ columns, data, rowKey = "id", actions, actio
     + (actions ? actionWidth : 0);
 
   return (
-    <section className="min-w-0 space-y-3 md:space-y-0">
+    <section className={`min-w-0 space-y-3 md:space-y-0 ${fillHeight ? "md:flex md:min-h-0 md:flex-1 md:flex-col" : ""}`}>
       <div className="grid gap-3 md:hidden">
         {data.map((item, index) => (
           <article key={item[rowKey]} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.99]">
@@ -39,8 +39,8 @@ export default function DataTable({ columns, data, rowKey = "id", actions, actio
           </article>
         ))}
       </div>
-      <div className="surface hidden w-full min-w-0 overflow-hidden md:block">
-        <div className={`${fitToWidth ? "w-full min-w-0 overflow-hidden" : "table-scroll w-full min-w-0"}`}>
+      <div className={`surface hidden w-full min-w-0 overflow-hidden md:block ${fillHeight ? "md:min-h-0 md:flex-1" : ""}`}>
+        <div className={`${fitToWidth ? `w-full min-w-0 ${fillHeight ? "overflow-auto" : "overflow-hidden"}` : "table-scroll w-full min-w-0"} ${fillHeight ? "md:h-full md:min-h-0" : ""}`}>
           <table
             className={`w-full table-fixed border-collapse ${fitToWidth ? "" : "min-w-[var(--table-min-width)]"}`}
             style={fitToWidth ? undefined : { "--table-min-width": `${tableMinWidth}px` }}

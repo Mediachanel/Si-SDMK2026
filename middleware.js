@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { getJwtSecret, getSessionJwtClaims } from "@/lib/auth/sessionConfig";
 
-const protectedRoutes = ["/dashboard", "/pegawai", "/pejabat", "/usulan", "/import-pegawai", "/import-drh", "/duk", "/qna-admin", "/profil"];
+const protectedRoutes = ["/dashboard", "/pegawai", "/pejabat", "/usulan", "/import-pegawai", "/import-drh", "/duk", "/profil"];
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const roleRules = {
   "/pejabat": ["SUPER_ADMIN"],
   "/import-pegawai": ["SUPER_ADMIN", "ADMIN_UKPD"],
   "/import-drh": ["SUPER_ADMIN", "ADMIN_UKPD"],
-  "/qna-admin": ["SUPER_ADMIN"],
   "/usulan": ["SUPER_ADMIN", "ADMIN_WILAYAH", "ADMIN_UKPD"]
 };
 
@@ -95,5 +94,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/dashboard/:path*", "/pegawai/:path*", "/pejabat/:path*", "/usulan/:path*", "/import-pegawai/:path*", "/import-drh/:path*", "/duk/:path*", "/qna-admin/:path*", "/profil/:path*"]
+  matcher: ["/api/:path*", "/dashboard/:path*", "/pegawai/:path*", "/pejabat/:path*", "/usulan/:path*", "/import-pegawai/:path*", "/import-drh/:path*", "/duk/:path*", "/profil/:path*"]
 };

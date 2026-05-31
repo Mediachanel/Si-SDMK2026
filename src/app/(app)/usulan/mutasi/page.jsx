@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -592,7 +592,6 @@ export default function UsulanMutasiPage() {
   const [panelMode, setPanelMode] = useState(null);
   const [activeId, setActiveId] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
-  const detailSectionRef = useRef(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [stageFilter, setStageFilter] = useState("");
   const [loading, setLoading] = useState(true);
@@ -756,9 +755,6 @@ export default function UsulanMutasiPage() {
 
   function openDetail(item) {
     setSelectedId(item.id);
-    window.setTimeout(() => {
-      detailSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
   }
 
   function updateRow(updatedItem) {
@@ -1099,8 +1095,14 @@ export default function UsulanMutasiPage() {
           )}
 
           {selected ? (
-            <section ref={detailSectionRef} className="surface p-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div
+              className="fixed inset-0 z-50 grid items-end bg-slate-950/40 px-3 pb-3 sm:place-items-center sm:p-4"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setSelectedId(null);
+              }}
+            >
+              <article className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-lg bg-white p-5 shadow-2xl sm:p-6" role="dialog" aria-modal="true" aria-label="Detail Usulan Mutasi">
+              <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-500">Detail Usulan Mutasi</p>
                   <h2 className="mt-1 text-xl font-bold text-slate-950">{selected.nama_pegawai || "-"}</h2>
@@ -1111,6 +1113,9 @@ export default function UsulanMutasiPage() {
                   <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                     Tahap {selected._flow.step}
                   </span>
+                  <button className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 focus-ring" type="button" onClick={() => setSelectedId(null)} aria-label="Tutup popup">
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
 
@@ -1122,6 +1127,50 @@ export default function UsulanMutasiPage() {
                   </div>
                   <p className="text-sm leading-6 text-slate-600">{selected._flow.nextAction}</p>
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {[
+                      ["Jabatan Saat Ini", selected.jabatan],
+                      ["Jabatan Tujuan", selected.jabatan_baru]
+                    ].map(([label, value]) => (
+                      <div key={label} className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-slate-900">{value || "-"}</p>
+                      </div>
+                    ))}
+                    {[
+                      {
+                        title: "UKPD Saat Ini",
+                        value: selected.nama_ukpd,
+                        metrics: [
+                          ["ABK Jabatan", selected.abk_j_lama],
+                          ["Bezetting Jabatan", selected.bezetting_j_lama],
+                          ["Non ASN", selected.nonasn_bezetting_lama],
+                          ["ABK Non ASN", selected.nonasn_abk_lama]
+                        ]
+                      },
+                      {
+                        title: "UKPD Tujuan",
+                        value: selected.ukpd_tujuan,
+                        metrics: [
+                          ["ABK Jabatan", selected.abk_j_baru],
+                          ["Bezetting Jabatan", selected.bezetting_j_baru],
+                          ["Non ASN", selected.nonasn_bezetting_baru],
+                          ["ABK Non ASN", selected.nonasn_abk_baru]
+                        ]
+                      }
+                    ].map((section) => (
+                      <div key={section.title} className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{section.title}</p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-slate-900">{section.value || "-"}</p>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          {section.metrics.map(([label, value]) => (
+                            <div key={label} className="rounded-lg bg-white px-3 py-2">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+                              <p className="mt-1 text-sm font-medium text-slate-900">{value ?? "-"}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                     <div className="rounded-xl bg-slate-50 p-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Jenis Mutasi</p>
                       <p className="mt-1 text-sm font-medium text-slate-900">{selected.jenis_mutasi || "-"}</p>
@@ -1168,33 +1217,10 @@ export default function UsulanMutasiPage() {
                       ))}
                     </div>
                   </div>
-
-                  <div className="rounded-2xl border border-slate-200 p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-dinkes-700" />
-                      <h3 className="text-sm font-semibold text-slate-900">ABK & Bezetting</h3>
-                    </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {[
-                        ["ABK lama", selected.abk_j_lama],
-                        ["Bezetting lama", selected.bezetting_j_lama],
-                        ["Non ASN lama", selected.nonasn_bezetting_lama],
-                        ["ABK Non ASN lama", selected.nonasn_abk_lama],
-                        ["ABK baru", selected.abk_j_baru],
-                        ["Bezetting baru", selected.bezetting_j_baru],
-                        ["Non ASN baru", selected.nonasn_bezetting_baru],
-                        ["ABK Non ASN baru", selected.nonasn_abk_baru]
-                      ].map(([label, value]) => (
-                        <div key={label} className="rounded-xl bg-slate-50 px-3 py-2">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-                          <p className="mt-1 text-sm font-medium text-slate-900">{value ?? "-"}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </div>
-            </section>
+              </article>
+            </div>
           ) : null}
         </div>
       </section>

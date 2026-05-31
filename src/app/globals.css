@@ -84,7 +84,7 @@ h3 {
   }
 
   .table-scroll {
-    @apply max-w-full overflow-x-auto overscroll-x-contain;
+    @apply max-w-full overflow-auto overscroll-x-contain;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 transparent;
   }
@@ -143,6 +143,22 @@ h3 {
 
   .print-drh-page {
     width: 100%;
+    padding-bottom: 9mm;
+  }
+
+  .print-drh-footer {
+    position: fixed;
+    right: 11mm;
+    bottom: 4mm;
+    left: 11mm;
+    display: flex;
+    justify-content: space-between;
+    gap: 8mm;
+    border-top: 1px solid #111111;
+    padding-top: 1.5mm;
+    color: #000000;
+    font-size: 8px;
+    line-height: 1.2;
   }
 
   .print-break-before {

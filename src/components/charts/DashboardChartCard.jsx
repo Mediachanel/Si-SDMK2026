@@ -1,10 +1,10 @@
 "use client";
 
-import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, LineController, LineElement, PointElement, Tooltip } from "chart.js";
+import { ArcElement, BarController, BarElement, CategoryScale, Chart as ChartJS, DoughnutController, Legend, LinearScale, LineController, LineElement, PointElement, Tooltip } from "chart.js";
 import { useEffect, useRef, useState } from "react";
 import { Bar, Chart, Doughnut } from "react-chartjs-2";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineController, LineElement, PointElement, ArcElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarController, BarElement, DoughnutController, LineController, LineElement, PointElement, ArcElement, Tooltip, Legend);
 
 const defaultColors = ["#00346d", "#d4af37", "#005914", "#325ea0", "#88d982", "#735c00", "#ba1a1a", "#64748b"];
 
@@ -22,6 +22,20 @@ function formatPercent(value, total) {
   })}%`;
 }
 
+function safeLabel(value) {
+  const text = String(value ?? "").trim();
+  return text || "Tidak Diketahui";
+}
+
+function safeNumber(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function safeNameList(value) {
+  return Array.isArray(value) ? value.map((item) => safeLabel(item)).filter(Boolean) : [];
+}
+
 function getVisibleDatasets(chart) {
   return chart.data.datasets
     .map((dataset, datasetIndex) => ({ dataset, datasetIndex }))
@@ -31,7 +45,7 @@ function getVisibleDatasets(chart) {
 function getStackTotal(chart, dataIndex) {
   return getVisibleDatasets(chart)
     .filter(({ dataset }) => dataset.type !== "line")
-    .reduce((sum, { dataset }) => sum + Number(dataset.data?.[dataIndex] || 0), 0);
+    .reduce((sum, { dataset }) => sum + safeNumber(dataset.data?.[dataIndex]), 0);
 }
 
 function drawText(ctx, text, x, y, { color = "#334155", align = "center", baseline = "middle", font = "600 10px Inter, Arial, sans-serif", stroke = true, strokeColor = "rgba(255,255,255,0.92)" } = {}) {
@@ -173,12 +187,12 @@ function getSummaryRows({ labels = [], values = [], colors = [], datasets = [] }
   const rows = datasets?.length
     ? labels.map((label, index) => ({
         label,
-        value: summaryDatasets.reduce((sum, dataset) => sum + Number(dataset.data?.[index] || 0), 0),
+        value: summaryDatasets.reduce((sum, dataset) => sum + safeNumber(dataset.data?.[index]), 0),
         color: palette[index % palette.length]
       }))
     : labels.map((label, index) => ({
         label,
-        value: Number(values[index] || 0),
+        value: safeNumber(values[index]),
         color: palette[index % palette.length]
       }));
 
@@ -204,7 +218,7 @@ function downloadChart(chartRef, title) {
 }
 
 function tooltipEmployeeLines(context) {
-  const names = context.dataset.employeeNames?.[context.dataIndex] || [];
+  const names = safeNameList(context.dataset.employeeNames?.[context.dataIndex]);
   if (!names.length) return [];
 
   const visibleNames = names.slice(0, 12);
@@ -232,6 +246,10 @@ export default function DashboardChartCard({
 }) {
   const chartRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
+  const chartLabels = Array.isArray(labels) ? labels.map(safeLabel) : [];
+  const chartValues = Array.isArray(values) ? values.map(safeNumber) : [];
+  const chartNames = Array.isArray(names) ? names.map(safeNameList) : [];
+  const chartDatasetsInput = Array.isArray(datasets) ? datasets : [];
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)");
@@ -241,13 +259,15 @@ export default function DashboardChartCard({
     return () => media.removeEventListener("change", update);
   }, []);
 
-  const flatTotal = values.reduce((sum, value) => sum + Number(value || 0), 0);
-  const chartDatasets = datasets?.length
-    ? datasets.map((dataset, index) => {
+  const flatTotal = chartValues.reduce((sum, value) => sum + safeNumber(value), 0);
+  const chartDatasets = chartDatasetsInput.length
+    ? chartDatasetsInput.map((dataset, index) => {
         const isLine = dataset.type === "line";
         const color = dataset.borderColor || dataset.backgroundColor || defaultColors[index % defaultColors.length];
         return {
           ...dataset,
+          data: Array.isArray(dataset.data) ? dataset.data.map(safeNumber) : [],
+          employeeNames: Array.isArray(dataset.employeeNames) ? dataset.employeeNames.map(safeNameList) : [],
           backgroundColor: dataset.backgroundColor || (isLine ? "rgba(56, 189, 248, 0.16)" : defaultColors[index % defaultColors.length]),
           borderColor: color,
           borderWidth: isLine ? dataset.borderWidth ?? 2 : dataset.borderWidth,
@@ -266,18 +286,18 @@ export default function DashboardChartCard({
     : [
         {
           label: title,
-          data: values,
-          employeeNames: names,
+          data: chartValues,
+          employeeNames: chartNames,
           backgroundColor: colors?.length ? colors : defaultColors,
           borderRadius: type === "bar" ? 2 : 0,
           maxBarThickness: horizontal ? 14 : 18
         }
       ];
   const data = {
-    labels,
+    labels: chartLabels,
     datasets: chartDatasets
   };
-  const summaryRows = getSummaryRows({ labels, values, colors, datasets });
+  const summaryRows = getSummaryRows({ labels: chartLabels, values: chartValues, colors, datasets: chartDatasets });
   const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -302,10 +322,10 @@ export default function DashboardChartCard({
             if (context.dataset.type === "line") {
               return `${context.dataset.label || "Total"}: ${formatNumber(value)}`;
             }
-            const total = datasets?.length
+            const total = chartDatasets.length
               ? context.chart.data.datasets
                 .filter((dataset) => dataset.type !== "line")
-                .reduce((sum, dataset) => sum + Number(dataset.data?.[context.dataIndex] || 0), 0)
+                .reduce((sum, dataset) => sum + safeNumber(dataset.data?.[context.dataIndex]), 0)
               : flatTotal;
             const label = type === "doughnut" ? context.label : (context.dataset.label || context.label);
             return `${label}: ${formatNumber(value)} (${formatPercent(value, total)})`;

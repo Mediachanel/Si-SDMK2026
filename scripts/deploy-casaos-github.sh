@@ -9,8 +9,6 @@ SOURCE_DIR="${SOURCE_DIR:-$APP_DIR/source}"
 BACKUP_DIR="${BACKUP_DIR:-$PROJECTS_ROOT/backup}"
 UPLOADS_DIR="${UPLOADS_DIR:-$PROJECTS_ROOT/uploads/si-kepegawaian}"
 POSTGRES_DATA_DIR="${POSTGRES_DATA_DIR:-$PROJECTS_ROOT/postgres/data}"
-N8N_DATA_DIR="${N8N_DATA_DIR:-$PROJECTS_ROOT/n8n/data}"
-AI_AGENT_DIR="${AI_AGENT_DIR:-$PROJECTS_ROOT/ai-agent}"
 DOCKER_DIR="${DOCKER_DIR:-$PROJECTS_ROOT/docker}"
 APP_PORT="${APP_PORT:-8091}"
 APP_BIND_HOST="${APP_BIND_HOST:-0.0.0.0}"
@@ -19,17 +17,11 @@ ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-}"
 JWT_SECRET="${JWT_SECRET:-}"
 ALLOW_INSECURE_LOCAL_HTTP="${ALLOW_INSECURE_LOCAL_HTTP:-}"
 COOKIE_SECURE="${COOKIE_SECURE:-}"
-AI_ENABLE_N8N="${AI_ENABLE_N8N:-true}"
-N8N_WEBHOOK_URL="${N8N_WEBHOOK_URL:-}"
-N8N_PUBLIC_WEBHOOK_URL="${N8N_PUBLIC_WEBHOOK_URL:-}"
-N8N_API_SECRET="${N8N_API_SECRET:-}"
-N8N_WEBHOOK_TIMEOUT_MS="${N8N_WEBHOOK_TIMEOUT_MS:-20000}"
-N8N_WEBHOOK_RETRIES="${N8N_WEBHOOK_RETRIES:-1}"
+UKPD_DEFAULT_PASSWORD="${UKPD_DEFAULT_PASSWORD:-}"
 TRUST_PROXY_HEADERS="${TRUST_PROXY_HEADERS:-true}"
 NETWORK_NAME="${NETWORK_NAME:-sisdmk2-network}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-sisdmk-postgres}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-pgvector/pgvector:pg16}"
-N8N_CONTAINER="${N8N_CONTAINER:-sisdmk-n8n}"
 POSTGRES_ADMIN_USER="${POSTGRES_ADMIN_USER:-}"
 POSTGRES_DATABASE="${POSTGRES_DATABASE:-si_data}"
 POSTGRES_DATABASES="${POSTGRES_DATABASES:-si_data}"
@@ -61,7 +53,6 @@ MIGRATE_PHASE1="${MIGRATE_PHASE1:-0}"
 SEED_SUPER_ADMIN="${SEED_SUPER_ADMIN:-0}"
 SEED_SUPER_ADMIN_USERNAME="${SEED_SUPER_ADMIN_USERNAME:-superadmin}"
 SEED_SUPER_ADMIN_PASSWORD="${SEED_SUPER_ADMIN_PASSWORD:-}"
-SEED_QNA_DEFAULTS="${SEED_QNA_DEFAULTS:-0}"
 LOG_LINES="${LOG_LINES:-100}"
 
 log() {
@@ -89,13 +80,7 @@ Options:
   --app-origin URL            URL publik aplikasi, contoh https://info.kepegawaian.media
   --allowed-origins VALUE     Daftar origin tambahan, default sama dengan app origin
   --jwt-secret VALUE          JWT secret production
-  --ai-enable-n8n true|false  Aktifkan bridge AI n8n, default true
-  --n8n-webhook-url URL       Webhook n8n untuk chat internal
-  --n8n-public-webhook-url URL Webhook n8n untuk chat publik
-  --n8n-api-secret VALUE      Secret header x-ai-secret untuk n8n dan tool internal
-  --n8n-webhook-timeout-ms MS Timeout webhook n8n, default 20000
-  --n8n-webhook-retries N     Retry webhook n8n, default 1
-  --n8n-container NAME        Nama container n8n yang dihubungkan ke network
+  --ukpd-default-password VALUE Password default untuk reset UKPD
   --trust-proxy-headers true|false Percaya header Cloudflare/proxy, default true
   --network-name NAME         Docker network untuk app dan PostgreSQL
   --postgres-container NAME   Nama container PostgreSQL, default sisdmk-postgres
@@ -120,7 +105,6 @@ Options:
   --seed-super-admin          Buat/reset akun Super Admin setelah app start
   --super-admin-username NAME Username Super Admin, default superadmin
   --super-admin-password VALUE Password Super Admin, minimal 12 karakter
-  --seed-qna-defaults         Buat tabel QnA publik dan isi pertanyaan default
   -h, --help                  Tampilkan bantuan
 
 Contoh:
@@ -175,39 +159,9 @@ while [ $# -gt 0 ]; do
       JWT_SECRET="$2"
       shift 2
       ;;
-    --ai-enable-n8n)
+    --ukpd-default-password)
       need_value "$@"
-      AI_ENABLE_N8N="$2"
-      shift 2
-      ;;
-    --n8n-webhook-url)
-      need_value "$@"
-      N8N_WEBHOOK_URL="$2"
-      shift 2
-      ;;
-    --n8n-public-webhook-url)
-      need_value "$@"
-      N8N_PUBLIC_WEBHOOK_URL="$2"
-      shift 2
-      ;;
-    --n8n-api-secret)
-      need_value "$@"
-      N8N_API_SECRET="$2"
-      shift 2
-      ;;
-    --n8n-webhook-timeout-ms)
-      need_value "$@"
-      N8N_WEBHOOK_TIMEOUT_MS="$2"
-      shift 2
-      ;;
-    --n8n-webhook-retries)
-      need_value "$@"
-      N8N_WEBHOOK_RETRIES="$2"
-      shift 2
-      ;;
-    --n8n-container)
-      need_value "$@"
-      N8N_CONTAINER="$2"
+      UKPD_DEFAULT_PASSWORD="$2"
       shift 2
       ;;
     --trust-proxy-headers)
@@ -320,10 +274,6 @@ while [ $# -gt 0 ]; do
       need_value "$@"
       SEED_SUPER_ADMIN_PASSWORD="$2"
       shift 2
-      ;;
-    --seed-qna-defaults)
-      SEED_QNA_DEFAULTS="1"
-      shift
       ;;
     -h|--help)
       usage
@@ -531,15 +481,13 @@ write_env_file() {
     esac
   fi
 
-  mkdir -p "$PROJECTS_ROOT" "$APP_DIR" "$SOURCE_DIR" "$BACKUP_DIR" "$UPLOADS_DIR" "$POSTGRES_DATA_DIR" "$N8N_DATA_DIR" "$AI_AGENT_DIR" "$DOCKER_DIR"
+  mkdir -p "$PROJECTS_ROOT" "$APP_DIR" "$SOURCE_DIR" "$BACKUP_DIR" "$UPLOADS_DIR" "$POSTGRES_DATA_DIR" "$DOCKER_DIR"
   umask 077
   cat > "$env_file" <<ENV
 PROJECTS_ROOT="$PROJECTS_ROOT"
 BACKUP_DIR="$BACKUP_DIR"
 UPLOADS_DIR="$UPLOADS_DIR"
 POSTGRES_DATA_DIR="$POSTGRES_DATA_DIR"
-N8N_DATA_DIR="$N8N_DATA_DIR"
-AI_AGENT_DIR="$AI_AGENT_DIR"
 DOCKER_DIR="$DOCKER_DIR"
 APP_PORT=$APP_PORT
 APP_BIND_HOST=$APP_BIND_HOST
@@ -550,12 +498,7 @@ ALLOWED_ORIGINS=$ALLOWED_ORIGINS
 ALLOW_INSECURE_LOCAL_HTTP=$ALLOW_INSECURE_LOCAL_HTTP
 COOKIE_SECURE=$COOKIE_SECURE
 TRUST_PROXY_HEADERS=$TRUST_PROXY_HEADERS
-AI_ENABLE_N8N=$AI_ENABLE_N8N
-N8N_WEBHOOK_URL=$N8N_WEBHOOK_URL
-N8N_PUBLIC_WEBHOOK_URL=$N8N_PUBLIC_WEBHOOK_URL
-N8N_API_SECRET=$N8N_API_SECRET
-N8N_WEBHOOK_TIMEOUT_MS=$N8N_WEBHOOK_TIMEOUT_MS
-N8N_WEBHOOK_RETRIES=$N8N_WEBHOOK_RETRIES
+UKPD_DEFAULT_PASSWORD=$UKPD_DEFAULT_PASSWORD
 POSTGRES_HOST=$POSTGRES_HOST
 POSTGRES_HOSTS=$POSTGRES_HOSTS
 POSTGRES_PORT=$POSTGRES_PORT
@@ -576,7 +519,7 @@ ENV
 }
 
 sync_source() {
-  mkdir -p "$PROJECTS_ROOT" "$APP_DIR" "$BACKUP_DIR" "$UPLOADS_DIR" "$POSTGRES_DATA_DIR" "$N8N_DATA_DIR" "$AI_AGENT_DIR" "$DOCKER_DIR"
+  mkdir -p "$PROJECTS_ROOT" "$APP_DIR" "$BACKUP_DIR" "$UPLOADS_DIR" "$POSTGRES_DATA_DIR" "$DOCKER_DIR"
 
   if [ -d "$SOURCE_DIR/.git" ]; then
     log "Update source dari GitHub: $SOURCE_DIR"
@@ -644,7 +587,6 @@ connect_app_networks() {
   docker network inspect "$NETWORK_NAME" >/dev/null 2>&1 || docker network create "$NETWORK_NAME" >/dev/null
 
   connect_container_to_network "$POSTGRES_CONTAINER"
-  connect_container_to_network "$N8N_CONTAINER"
 }
 
 postgres_can_connect() {
@@ -802,13 +744,6 @@ seed_super_admin() {
     sisdmk2-app npm run seed:phase1
 }
 
-seed_qna_defaults() {
-  [ "$SEED_QNA_DEFAULTS" = "1" ] || return 0
-
-  log "Membuat tabel dan konten default QnA publik..."
-  docker exec sisdmk2-app npm run seed:qna
-}
-
 build_and_start_app() {
   cd "$SOURCE_DIR"
 
@@ -897,7 +832,6 @@ build_and_start_app
 check_app
 run_phase1_migration
 seed_super_admin
-seed_qna_defaults
 wait_for_http_health
 
 show_summary

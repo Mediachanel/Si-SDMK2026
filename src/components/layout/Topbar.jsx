@@ -155,20 +155,20 @@ export default function Topbar({ user, onOpenMenu, collapsed, onToggleSidebar })
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur print:hidden">
-      <div className="flex h-16 items-center gap-2 px-3 sm:px-5 md:justify-between">
-        <button className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-dinkes-800 hover:bg-slate-100 focus-ring md:hidden" onClick={onOpenMenu} aria-label="Buka menu">
+      <div className="flex h-16 items-center gap-2 px-3 sm:px-5 lg:justify-between">
+        <button className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-dinkes-800 hover:bg-slate-100 focus-ring lg:hidden" onClick={onOpenMenu} aria-label="Buka menu">
             <Menu className="h-5 w-5" />
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <button className="hidden rounded-lg border border-slate-200 bg-white p-2.5 text-dinkes-800 hover:bg-slate-100 focus-ring lg:inline-flex" onClick={onToggleSidebar} aria-label={collapsed ? "Buka sidebar" : "Tutup sidebar"}>
             {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
           </button>
-          <nav className="hidden min-w-0 items-center gap-2 text-sm font-medium md:flex" aria-label="Breadcrumb">
+          <nav className="hidden min-w-0 items-center gap-2 text-sm font-medium lg:flex" aria-label="Breadcrumb">
             <Link className="text-dinkes-800 hover:text-dinkes-700" href="/dashboard">Beranda</Link>
             <span className="text-slate-300">/</span>
             <span className="truncate text-slate-600">{breadcrumbFromPath(pathname)}</span>
           </nav>
-          <div className="relative ml-auto hidden min-w-0 w-full max-w-xl md:block" ref={searchRef}>
+          <div className="relative ml-auto hidden min-w-0 w-full max-w-xl lg:block" ref={searchRef}>
             <label className="sr-only" htmlFor="topbar-search-input">Pencarian cepat</label>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <input
@@ -232,7 +232,7 @@ export default function Topbar({ user, onOpenMenu, collapsed, onToggleSidebar })
             ) : null}
           </div>
         </div>
-        <div className="relative min-w-0 flex-1 md:hidden" ref={mobileSearchRef}>
+        <div className="relative min-w-0 flex-1 lg:hidden" ref={mobileSearchRef}>
           <label className="sr-only" htmlFor="mobile-topbar-search-input">Pencarian cepat</label>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
           <input
@@ -288,17 +288,17 @@ export default function Topbar({ user, onOpenMenu, collapsed, onToggleSidebar })
             </div>
           ) : null}
         </div>
-        <div className="flex shrink-0 items-center gap-2 md:gap-4">
-          <span className="hidden text-sm font-medium text-slate-500 md:inline">{formatToday()}</span>
-          <span className="hidden h-8 w-px bg-[#e5e7eb] md:block" aria-hidden="true" />
-          <button className="relative hidden rounded-full p-2 text-slate-700 hover:bg-slate-100 focus-ring sm:inline-flex md:inline-flex" type="button" aria-label="Notifikasi">
+        <div className="flex shrink-0 items-center gap-2 lg:gap-4">
+          <span className="hidden text-sm font-medium text-slate-500 lg:inline">{formatToday()}</span>
+          <span className="hidden h-8 w-px bg-[#e5e7eb] lg:block" aria-hidden="true" />
+          <button className="relative hidden rounded-full p-2 text-slate-700 hover:bg-slate-100 focus-ring sm:inline-flex" type="button" aria-label="Notifikasi">
             <Bell className="h-5 w-5" />
             <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-600" />
           </button>
           <Link className="hidden rounded-full p-2 text-slate-700 hover:bg-slate-100 focus-ring sm:inline-flex" href="/profil" aria-label="Pengaturan">
             <Settings className="h-5 w-5" />
           </Link>
-          <span className="hidden h-8 w-px bg-[#e5e7eb] md:block" aria-hidden="true" />
+          <span className="hidden h-8 w-px bg-[#e5e7eb] lg:block" aria-hidden="true" />
           <div className="hidden min-w-0 max-w-40 text-right lg:block xl:max-w-56">
             <p className="truncate text-sm font-bold leading-tight text-slate-900">{user?.username || "Admin Dinas"}</p>
             <p className="truncate text-xs font-medium uppercase text-slate-500">{user?.role || "Dinas Kesehatan"}</p>
@@ -329,7 +329,7 @@ export default function Topbar({ user, onOpenMenu, collapsed, onToggleSidebar })
                   onClick={() => setAccountOpen(false)}
                 >
                   <UserRound className="h-4 w-4" />
-                  Profil Pengguna
+                  Pengaturan Akun
                 </Link>
                 <button
                   type="button"

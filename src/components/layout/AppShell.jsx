@@ -6,7 +6,6 @@ import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
 import MobileSidebar from "@/components/layout/MobileSidebar";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
-import InternalAiChat from "@/components/ai/InternalAiChat";
 
 export default function AppShell({ children }) {
   const router = useRouter();
@@ -65,11 +64,10 @@ export default function AppShell({ children }) {
     <div className="min-h-screen min-w-0 bg-[#f8f9fa] print:bg-white">
       <Sidebar user={user} collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />
       <MobileSidebar user={user} open={mobileOpen} onClose={() => setMobileOpen(false)} />
-      <div className={`min-w-0 transition-[padding] duration-200 print:pl-0 md:pl-16 ${collapsed ? "lg:pl-16" : "lg:pl-[260px]"}`}>
+      <div className={`min-w-0 transition-[padding] duration-200 print:pl-0 ${collapsed ? "lg:pl-16" : "lg:pl-[260px]"}`}>
         <Topbar user={user} onOpenMenu={() => setMobileOpen(true)} collapsed={collapsed} onToggleSidebar={() => setCollapsed((value) => !value)} />
-        <main className="min-w-0 max-w-full px-3 pb-28 pt-3 print:p-0 sm:px-5 sm:pt-5 md:pb-8 lg:px-6">{children}</main>
+        <main className="min-w-0 max-w-full px-3 pb-28 pt-3 print:p-0 sm:px-5 sm:pt-5 lg:h-[calc(100vh-4rem)] lg:overflow-auto lg:px-6 lg:pb-6">{children}</main>
       </div>
-      <InternalAiChat variant="floating" />
       <MobileBottomNav user={user} />
     </div>
   );
